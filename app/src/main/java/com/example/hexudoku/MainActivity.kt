@@ -62,30 +62,23 @@ fun MainContent() {
     
     NavHost(navController = navController, startDestination = "main menu") {
         composable("board") {
-            // Be aware! Here I assert that boardModel is not null, so ensure
-            // the boardModel has an appropriate value before navigating to board
-            if (boardModel == null) {
-                navController.navigate("main menu") {
-                    popUpTo("main menu") { inclusive = true }
-                }
-            }
+
+            // Be aware! If boardModel is null the app will navigate to the main menu
             CustomColumn {
-                BoardView(
-                    // Using the screenWidth directly makes the app misbehave when the width > the height
-                    // This has been fixed by disabling landscape mode
-                    boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
-                    boardModel = boardModel!!,
-                    backToMenu = backToMenuFunction)
+                if (boardModel != null) {
+                    BoardView(
+                      // Using the screenWidth directly makes the app misbehave when the width > the height
+                      // This has been fixed by disabling landscape mode
+                      boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
+                      boardModel = boardModel!!,
+                      backToMenu = backToMenuFunction
+                    )
+                }
             }
         }
         composable("main menu") {
             CustomColumn {
                 Spacer(modifier = Modifier.height(50.dp))
-                HexButton(onClick = {
-                    navController.navigate("difficulty menu") },
-                    text = "How to play"
-                )
-                Spacer(modifier = Modifier.height(24.dp))
                 HexButton(
                     onClick = { navController.navigate("difficulty menu") },
                     text = "New Game"
@@ -96,9 +89,17 @@ fun MainContent() {
                     enabled = boardModel != null
                 )
                 Spacer(modifier = Modifier.height(24.dp))
+                HexButton(onClick = {
+                    navController.navigate("how to play") },
+                    text = "How to play"
+                )
                 HexButton(
-                    onClick = { navController.navigate("about menu") },
+                    onClick = { navController.navigate("about") },
                     text = "About"
+                )
+                HexButton(
+                    onClick = { navController.navigate("settings") },
+                    text = "Settings"
                 )
             }
         }
@@ -112,7 +113,6 @@ fun MainContent() {
                     },
                     text = "Short"
                 )
-
                 HexButton(
                     onClick = {
                         boardModel = BoardModel(null, null, 25)
@@ -120,7 +120,6 @@ fun MainContent() {
                     },
                     text = "Medium"
                 )
-
                 HexButton(
                     onClick = {
                         boardModel = BoardModel(null, null, 35)
@@ -128,7 +127,6 @@ fun MainContent() {
                     },
                     text = "Long"
                 )
-
                 HexButton(
                     onClick = {
                         boardModel = BoardModel(null, null, 50)
@@ -136,21 +134,7 @@ fun MainContent() {
                     },
                     text = "Max"
                 )
-
                 Spacer(modifier = Modifier.height(24.dp))
-
-                HexButton(onClick = { navController.navigate("main menu") {
-                    popUpTo("main menu") { inclusive = true }
-                } }, text = "Back")
-            }
-        }
-        composable("about") {
-            CustomColumn {
-                Text(
-                    modifier = Modifier.width(200.dp),
-                    textAlign = TextAlign.Center,
-                    text = "This app showcases a variant of sudoku that makes use of hexagons instead of squares."
-                )
                 HexButton(onClick = { navController.navigate("main menu") {
                     popUpTo("main menu") { inclusive = true }
                 } }, text = "Back")
@@ -159,6 +143,30 @@ fun MainContent() {
         composable("how to play") {
             CustomColumn {
                 // TODO Show examples of the board with lines along the "rows" and "columns"
+                Text(text = "Work in progress")
+                HexButton(onClick = { navController.navigate("main menu") {
+                    popUpTo("main menu") { inclusive = true }
+                } }, text = "Back")
+            }
+        }
+        composable("about") {
+            CustomColumn {
+                Spacer(modifier = Modifier.height(50.dp))
+                Text(
+                    modifier = Modifier.width(300.dp),
+                    textAlign = TextAlign.Center,
+                    text = "This app showcases a variant of sudoku that makes use of hexagons instead of squares."
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                HexButton(onClick = { navController.navigate("main menu") {
+                    popUpTo("main menu") { inclusive = true }
+                } }, text = "Back")
+            }
+        }
+        composable("settings") {
+            CustomColumn {
+                Spacer(modifier = Modifier.height(50.dp))
+                // TODO Add settings for toggling hint button, darkMode, and timer
                 Text(text = "Work in progress")
                 HexButton(onClick = { navController.navigate("main menu") {
                     popUpTo("main menu") { inclusive = true }
