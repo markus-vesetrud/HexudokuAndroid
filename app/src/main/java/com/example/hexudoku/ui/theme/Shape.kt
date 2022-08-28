@@ -1,4 +1,4 @@
-package com.example.hexsudoku.ui.theme
+package com.example.hexudoku.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Shapes

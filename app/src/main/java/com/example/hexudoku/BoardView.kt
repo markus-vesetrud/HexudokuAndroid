@@ -1,11 +1,10 @@
-package com.example.hexsudoku
+package com.example.hexudoku
 
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -42,7 +41,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
     * A recomposition of the entire composable will trigger another initialization of the
     * boardModel, rather than keeping the old one. This will result in the board becoming scrambled.
     * To avoid this I added a Surface to wrap the content of this composable, so that only the
-    * content inside the surface is recomposed, not the entire composable.    *
+    * content inside the surface is recomposed, not the entire composable.
     */
 
     val hexChangeable = mutableMapOf<String, Boolean>()

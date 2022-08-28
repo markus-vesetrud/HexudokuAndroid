@@ -1,4 +1,4 @@
-package com.example.hexsudoku
+package com.example.hexudoku
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.hexsudoku.ui.theme.HexSudokuTheme
+import com.example.hexudoku.ui.theme.HexSudokuTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

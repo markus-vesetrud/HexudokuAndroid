@@ -1,4 +1,4 @@
-package com.example.hexsudoku
+package com.example.hexudoku
 
 import kotlin.random.Random
 
