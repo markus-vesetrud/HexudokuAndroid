@@ -128,7 +128,6 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
         while (randomIDArray.isNotEmpty() && remaining > 0) {
             remaining--
             val hexID = randomIDArray.removeAt(0)
-            println(hexID)
             val temporary = board[hexID]!!
             board[hexID] = 0
             if (!boardIsSolvable()) {
@@ -148,8 +147,6 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
 
         // If no mistakes then return one hex that is not yet filled in
         val results = calculateNext()
-        println(results.size)
-        println(boardIsSolvable())
         return Pair(results.entries.first().key, results.entries.first().value)
     }
 

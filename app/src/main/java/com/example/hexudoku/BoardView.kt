@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.example.hexudoku.ui.theme.primaryVariant2
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -35,8 +37,20 @@ private fun stateToText(x: Int): String {
     return if (x <= 0 || x >= 8) { "" } else { x.toString() }
 }
 
+private fun colorToHex(color: Color): Int {
+    val alpha = (color.alpha*255).toInt()
+    val red = (color.red*255).toInt()
+    val green = (color.green*255).toInt()
+    val blue = (color.blue*255).toInt()
+    return alpha*0x1000000 + red*0x10000 + green*0x100 + blue
+}
+
 @Composable
-internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Boolean) -> Unit) {
+internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (Boolean) -> Unit) {
+    if (boardModel == null) {
+        backToMenu(false)
+        return
+    }
     /*
     * A recomposition of the entire composable will trigger another initialization of the
     * boardModel, rather than keeping the old one. This will result in the board becoming scrambled.
@@ -47,11 +61,13 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
     val hexChangeable = mutableMapOf<String, Boolean>()
     val hexTextColor = mutableMapOf<String, MutableState<Int>>()
     val board = mutableMapOf<String, MutableState<Int>>()
+    val textColor: Int = colorToHex(MaterialTheme.colors.onSurface)
+    val errorColor: Int = colorToHex(MaterialTheme.colors.error)
     for (hexID in BoardModel.hexIDArray) {
 
         hexChangeable[hexID] = (boardModel.board[hexID]!! == 0)
         hexTextColor[hexID] = remember {
-            mutableStateOf(0xff000000.toInt())
+            mutableStateOf(textColor)
         }
 
         board[hexID] = if (hexChangeable[hexID]!!) {
@@ -64,13 +80,13 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
     val hexSize: Float = (boardSize - 20f)/(sqrt(3f)*8f)
 
     val colorArray = arrayOf(
-        Color.LightGray,
-        Color.Green,
-        Color.Cyan,
-        Color.Green,
-        Color.Cyan,
-        Color.Green,
-        Color.Cyan
+        MaterialTheme.colors.primary,
+        MaterialTheme.colors.primaryVariant2,
+        MaterialTheme.colors.primaryVariant,
+        MaterialTheme.colors.primaryVariant2,
+        MaterialTheme.colors.primaryVariant,
+        MaterialTheme.colors.primaryVariant2,
+        MaterialTheme.colors.primaryVariant
     )
 
     var completed by remember {
@@ -116,7 +132,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
                                 board[closestHexID]!!.value = (board[closestHexID]!!.value + 1) % 8
                                 boardModel.board[closestHexID] = board[closestHexID]!!.value
 
-                                hexTextColor[closestHexID]!!.value = 0xff000000.toInt()
+                                hexTextColor[closestHexID]!!.value = textColor
                             }
                         }
 
@@ -200,7 +216,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
                 HexButton(enabled = !completed, onClick = {
                     val (hexID, number) = boardModel.hint()
                     if (number == 0) {
-                        hexTextColor[hexID]!!.value = 0xffff0000.toInt()
+                        hexTextColor[hexID]!!.value = errorColor
                     } else {
                         board[hexID]!!.value = number
                         boardModel.board[hexID] = board[hexID]!!.value
