@@ -63,6 +63,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
 
     val hexSize: Float = (boardSize - 20f)/(sqrt(3f)*8f)
 
+
     val colorArray = arrayOf(
         Color.LightGray,
         Color.Green,
