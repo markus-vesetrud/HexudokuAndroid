@@ -79,6 +79,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
 
     val hexSize: Float = (boardSize - 20f)/(sqrt(3f)*8f)
 
+
     val colorArray = arrayOf(
         MaterialTheme.colors.primary,
         MaterialTheme.colors.primaryVariant2,

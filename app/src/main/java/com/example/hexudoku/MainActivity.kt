@@ -1,9 +1,12 @@
 package com.example.hexudoku
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material.Button
@@ -13,6 +16,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +45,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainContent() {
+    LockScreenOrientation(orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
     val navController = rememberNavController()
     var boardModel: BoardModel? by remember {
         mutableStateOf(null)
@@ -60,7 +66,13 @@ fun MainContent() {
             // Be aware! If boardModel is null the app will navigate to the main menu
             CustomColumn {
                 if (boardModel != null) {
-                    BoardView(400f, boardModel, backToMenu = backToMenuFunction)
+                    BoardView(
+                      // Using the screenWidth directly makes the app misbehave when the width > the height
+                      // This has been fixed by disabling landscape mode
+                      boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
+                      boardModel = boardModel!!,
+                      backToMenu = backToMenuFunction
+                    )
                 }
             }
         }
@@ -186,4 +198,24 @@ fun CustomColumn(modifier: Modifier = Modifier.fillMaxSize(), content: @Composab
         Text(text = "Hexudoku", fontSize = 40.sp)
         content()
     }
+}
+
+@Composable
+fun LockScreenOrientation(orientation: Int) {
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val activity = context.findActivity() ?: return@DisposableEffect onDispose {}
+        val originalOrientation = activity.requestedOrientation
+        activity.requestedOrientation = orientation
+        onDispose {
+            // restore original orientation when view disappears
+            activity.requestedOrientation = originalOrientation
+        }
+    }
+}
+
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
