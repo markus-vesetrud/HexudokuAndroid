@@ -21,28 +21,47 @@ import com.example.hexudoku.ui.theme.primaryVariant2
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-private fun scaleX(x: Int, hexSize: Float): Float {
+internal fun scaleX(x: Float, hexSize: Float): Float {
     return x * hexSize * sqrt(3f) / 2f
 }
+internal fun scaleX(x: Int, hexSize: Float): Float {
+    return scaleX(x.toFloat(), hexSize)
+}
 
-private fun scaleY(y: Int, hexSize: Float): Float {
+internal fun scaleY(y: Float, hexSize: Float): Float {
     return y * hexSize * 1.5f
+}
+internal fun scaleY(y: Int, hexSize: Float): Float {
+    return scaleY(y.toFloat(), hexSize)
 }
 
 private fun calculateDistance(x1: Float, y1: Float, x2: Float, y2: Float): Float {
     return sqrt((x1-x2).pow(2) + (y1-y2).pow(2))
 }
 
-private fun stateToText(x: Int): String {
+internal fun stateToText(x: Int): String {
     return if (x <= 0 || x >= 8) { "" } else { x.toString() }
 }
 
-private fun colorToHex(color: Color): Int {
+internal fun colorToHex(color: Color): Int {
     val alpha = (color.alpha*255).toInt()
     val red = (color.red*255).toInt()
     val green = (color.green*255).toInt()
     val blue = (color.blue*255).toInt()
     return alpha*0x1000000 + red*0x10000 + green*0x100 + blue
+}
+
+@Composable
+internal fun colorArray(): Array<Color> {
+    return arrayOf(
+        MaterialTheme.colors.primary,
+        MaterialTheme.colors.primaryVariant2,
+        MaterialTheme.colors.primaryVariant,
+        MaterialTheme.colors.primaryVariant2,
+        MaterialTheme.colors.primaryVariant,
+        MaterialTheme.colors.primaryVariant2,
+        MaterialTheme.colors.primaryVariant
+    )
 }
 
 @Composable
@@ -79,16 +98,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
 
     val hexSize: Float = (boardSize - 20f)/(sqrt(3f)*8f)
 
-
-    val colorArray = arrayOf(
-        MaterialTheme.colors.primary,
-        MaterialTheme.colors.primaryVariant2,
-        MaterialTheme.colors.primaryVariant,
-        MaterialTheme.colors.primaryVariant2,
-        MaterialTheme.colors.primaryVariant,
-        MaterialTheme.colors.primaryVariant2,
-        MaterialTheme.colors.primaryVariant
-    )
+    val colorArray = colorArray()
 
     var completed by remember {
         mutableStateOf(false)

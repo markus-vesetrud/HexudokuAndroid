@@ -1,3 +1,28 @@
 <resources>
+
     <string name="app_name">Hexudoku</string>
+
+    <string name="Tutorial0">
+        This game is like sudoku, but with hexagons instead of squares.
+        Tap on a hexagon to change the number.
+        You win if you manage to fill all the hexagons such that …
+    </string>
+    <string name="Tutorial1">
+        … there are only different numbers in every group with a different color …
+    </string>
+    <string name="Tutorial2">
+        … only different numbers in the direction of this red line …
+    </string>
+    <string name="Tutorial3">
+        … and only different numbers in the direction of this red line …
+    </string>
+    <string name="Tutorial4">
+        … aaand only different numbers in the direction of this line.
+    </string>
+
+    <string name="About">
+        This app showcases a variant of sudoku that makes use of hexagons instead of squares.
+
+    </string>
+
 </resources>

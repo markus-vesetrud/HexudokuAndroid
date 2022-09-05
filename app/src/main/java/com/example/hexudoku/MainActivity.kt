@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -142,11 +143,51 @@ fun MainContent() {
         }
         composable("how to play") {
             CustomColumn {
-                // TODO Show examples of the board with lines along the "rows" and "columns"
-                Text(text = "Work in progress")
-                HexButton(onClick = { navController.navigate("main menu") {
-                    popUpTo("main menu") { inclusive = true }
-                } }, text = "Back")
+                var tutorialNr by remember {
+                    mutableStateOf(0)
+                }
+
+                Text(
+                    modifier = Modifier.width(300.dp),
+                    textAlign = TextAlign.Center,
+                    text = when (tutorialNr) {
+                        1 -> {stringResource(R.string.Tutorial1)}
+                        2 -> {stringResource(R.string.Tutorial2)}
+                        3 -> {stringResource(R.string.Tutorial3)}
+                        4 -> {stringResource(R.string.Tutorial4)}
+                        else -> {stringResource(R.string.Tutorial0)}
+                    }
+                )
+                if (tutorialNr != 0) {
+                    TutorialBoard(boardSize = LocalConfiguration.current.screenWidthDp.dp.value, step = tutorialNr)
+                }
+
+                Row {
+                    HexButton(
+                        onClick = {
+                            if (tutorialNr == 0) {
+                                navController.navigate("main menu") {
+                                    popUpTo("main menu") { inclusive = true }
+                                }
+                            } else {
+                                tutorialNr -= 1
+                            }
+                                  },
+                        text = "Back"
+                    )
+                    HexButton(
+                        onClick = {
+                            if (tutorialNr == 4) {
+                                navController.navigate("main menu") {
+                                    popUpTo("main menu") { inclusive = true }
+                                }
+                            } else {
+                                tutorialNr += 1
+                            }
+                        },
+                        text = "Next"
+                    )
+                }
             }
         }
         composable("about") {
@@ -155,7 +196,7 @@ fun MainContent() {
                 Text(
                     modifier = Modifier.width(300.dp),
                     textAlign = TextAlign.Center,
-                    text = "This app showcases a variant of sudoku that makes use of hexagons instead of squares."
+                    text = stringResource(R.string.About)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 HexButton(onClick = { navController.navigate("main menu") {
