@@ -22,7 +22,12 @@
 
     <string name="About">
         This app showcases a variant of sudoku that makes use of hexagons instead of squares.
-
+        It is made by a student of computer science at NTNU, Norway.
+        The idea for this game came about while I was thinking about sudoku\'s, after having watched
+        CGP Grey\'s video "Hexagons are the Bestagons". Later I found out the concept (of course)
+        already existed, but it was not implemented in an actual game before. Which meant I had
+        fun developing my own algorithms for solving and generating new hexudoku\'s, although it
+        took several tries with different concepts.
     </string>
 
 </resources>
