@@ -9,10 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CutCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +57,13 @@ fun MainContent() {
             popUpTo("main menu") { inclusive = true }
         }
     }
+    // Settings:
+    var showHint by remember {
+        mutableStateOf(true)
+    }
+    var showTimer by remember {
+        mutableStateOf(false)
+    }
     
     NavHost(navController = navController, startDestination = "main menu") {
         composable("board") {
@@ -68,11 +72,13 @@ fun MainContent() {
             CustomColumn {
                 if (boardModel != null) {
                     BoardView(
-                      // Using the screenWidth directly makes the app misbehave when the width > the height
-                      // This has been fixed by disabling landscape mode
-                      boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
-                      boardModel = boardModel!!,
-                      backToMenu = backToMenuFunction
+                        // Using the screenWidth directly makes the app misbehave when the width > the height
+                        // This has been fixed by disabling landscape mode
+                        boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
+                        boardModel = boardModel!!,
+                        backToMenu = backToMenuFunction,
+                        showHint = showHint,
+                        showTimer = showTimer,
                     )
                 }
             }
@@ -146,7 +152,9 @@ fun MainContent() {
                 var tutorialNr by remember {
                     mutableStateOf(0)
                 }
-
+                if (tutorialNr == 0) {
+                    Spacer(modifier = Modifier.height(50.dp))
+                }
                 Text(
                     modifier = Modifier.width(300.dp),
                     textAlign = TextAlign.Center,
@@ -193,6 +201,7 @@ fun MainContent() {
         composable("about") {
             CustomColumn {
                 Spacer(modifier = Modifier.height(50.dp))
+                Text(text = "About", fontSize = 24.sp)
                 Text(
                     modifier = Modifier.width(300.dp),
                     textAlign = TextAlign.Center,
@@ -208,7 +217,15 @@ fun MainContent() {
             CustomColumn {
                 Spacer(modifier = Modifier.height(50.dp))
                 // TODO Add settings for toggling hint button, darkMode, and timer
-                Text(text = "Work in progress")
+                Text(text = "Settings", fontSize = 24.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Show hint button")
+                    Checkbox(checked = showHint, onCheckedChange = {showHint = it})
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Show timer")
+                    Checkbox(checked = showTimer, onCheckedChange = {showTimer = it})
+                }
                 HexButton(onClick = { navController.navigate("main menu") {
                     popUpTo("main menu") { inclusive = true }
                 } }, text = "Back")

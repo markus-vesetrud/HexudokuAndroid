@@ -65,7 +65,7 @@ internal fun colorArray(): Array<Color> {
 }
 
 @Composable
-internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (Boolean) -> Unit) {
+internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (Boolean) -> Unit, showHint: Boolean, showTimer: Boolean) {
     if (boardModel == null) {
         backToMenu(false)
         return
@@ -224,17 +224,19 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                 HexButton(onClick = { backToMenu(completed) }, text = "Back To Menu")
 
                 Spacer(modifier = Modifier.width(10.dp))
-                HexButton(enabled = !completed, onClick = {
-                    val (hexID, number) = boardModel.hint()
-                    if (number == 0) {
-                        hexTextColor[hexID]!!.value = errorColor
-                    } else {
-                        board[hexID]!!.value = number
-                        boardModel.board[hexID] = board[hexID]!!.value
+                if (showHint) {
+                    HexButton(enabled = !completed, onClick = {
+                        val (hexID, number) = boardModel.hint()
+                        if (number == 0) {
+                            hexTextColor[hexID]!!.value = errorColor
+                        } else {
+                            board[hexID]!!.value = number
+                            boardModel.board[hexID] = board[hexID]!!.value
 
-                        completed = boardModel.isBoardSolved()
-                    }
-                }, text = "Hint")
+                            completed = boardModel.isBoardSolved()
+                        }
+                    }, text = "Hint")
+                }
             }
 
         }
