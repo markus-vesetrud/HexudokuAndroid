@@ -7,7 +7,9 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -28,13 +30,34 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            HexSudokuTheme {
+
+            // Settings:
+            val (showHint, onShowHintChange) = remember {
+                mutableStateOf(true)
+            }
+            val (showTimer, onShowTimerChange) = remember {
+                mutableStateOf(false)
+            }
+            val themeOptions = listOf("dark", "light", "system")
+            val (selectedTheme, onThemeSelect) = remember {
+                mutableStateOf(themeOptions[2])
+            }
+
+            HexSudokuTheme(darkTheme = when(selectedTheme) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }) {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    MainContent()
+                    MainContent(
+                        showHint, onShowHintChange,
+                        showTimer, onShowTimerChange,
+                        themeOptions, selectedTheme, onThemeSelect
+                    )
                 }
             }
         }
@@ -42,7 +65,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainContent() {
+fun MainContent(
+    showHint: Boolean, onShowHintChange: (Boolean) -> Unit,
+    showTimer: Boolean, onShowTimerChange: (Boolean) -> Unit,
+    themeOptions: List<String>, selectedTheme: String, onThemeSelect: (String) -> Unit
+) {
     LockScreenOrientation(orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
     val navController = rememberNavController()
     var boardModel: BoardModel? by remember {
@@ -62,13 +89,7 @@ fun MainContent() {
             popUpTo("main menu") { inclusive = true }
         }
     }
-    // Settings:
-    var showHint by remember {
-        mutableStateOf(true)
-    }
-    var showTimer by remember {
-        mutableStateOf(false)
-    }
+
     
     NavHost(navController = navController, startDestination = "main menu") {
         composable("board") {
@@ -219,16 +240,43 @@ fun MainContent() {
         composable("settings") {
             CustomColumn {
                 Spacer(modifier = Modifier.height(50.dp))
-                // TODO Add settings for toggling hint button, darkMode, and timer
                 Text(text = "Settings", fontSize = 24.sp)
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Show hint button")
-                    Checkbox(checked = showHint, onCheckedChange = {showHint = it})
+                    Checkbox(checked = showHint, onCheckedChange = onShowHintChange)
                 }
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Show timer")
-                    Checkbox(checked = showTimer, onCheckedChange = {showTimer = it})
+                    Checkbox(checked = showTimer, onCheckedChange = onShowTimerChange)
                 }
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Dark mode select")
+                    Column() {
+                        themeOptions.forEach { text ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.selectable(
+                                    selected = (text == selectedTheme),
+                                    onClick = { onThemeSelect(text) }
+                                )
+                            ) {
+                                RadioButton(
+                                    selected = (text == selectedTheme),
+                                    onClick = { onThemeSelect(text) }
+                                )
+                                Text(text = stringResource(when(text) {
+                                    "light" -> R.string.setting_light
+                                    "dark" -> R.string.setting_dark
+                                    else -> R.string.setting_system
+                                }))
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
                 HexButton(onClick = { navController.navigate("main menu") {
                     popUpTo("main menu") { inclusive = true }
                 } }, text = "Back")
@@ -263,6 +311,12 @@ fun CustomColumn(modifier: Modifier = Modifier.fillMaxSize(), content: @Composab
 
 @Composable
 fun LockScreenOrientation(orientation: Int) {
+    fun Context.findActivity(): Activity? = when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
     val context = LocalContext.current
     DisposableEffect(Unit) {
         val activity = context.findActivity() ?: return@DisposableEffect onDispose {}
@@ -273,10 +327,4 @@ fun LockScreenOrientation(orientation: Int) {
             activity.requestedOrientation = originalOrientation
         }
     }
-}
-
-fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

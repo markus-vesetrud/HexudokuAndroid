@@ -19,6 +19,10 @@
     <string name="Tutorial4">
         … aaand only different numbers in the direction of this line.
     </string>
+    <string name="setting_light">Light</string>
+    <string name="setting_dark">Dark</string>
+    <string name="setting_system">System</string>
+
 
     <string name="About">
         This app showcases a variant of sudoku that makes use of hexagons instead of squares.
