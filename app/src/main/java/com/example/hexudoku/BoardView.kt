@@ -17,7 +17,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.hexudoku.ui.theme.primaryVariant2
+import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -65,9 +67,9 @@ internal fun colorArray(): Array<Color> {
 }
 
 @Composable
-internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (Boolean) -> Unit, showHint: Boolean, showTimer: Boolean) {
+internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (Boolean, Int) -> Unit, showHint: Boolean, showTimer: Boolean, timeSpent: Int) {
     if (boardModel == null) {
-        backToMenu(false)
+        backToMenu(false, 0)
         return
     }
     /*
@@ -110,6 +112,13 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            Spacer(modifier = Modifier.height(20.dp))
+            if (completed) {
+                Text(text = "Puzzle Solved!", fontSize = 26.sp, modifier = Modifier.height(40.dp))
+            } else {
+                Spacer(modifier = Modifier.height(40.dp))
+            }
+
             Canvas(modifier = Modifier
                 .width(boardSize.dp)
                 .height(boardSize.dp)
@@ -215,13 +224,22 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                     )
                 }
             }
-            if (completed) {
-                Text("Puzzle Solved!", modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            var seconds by remember { mutableStateOf(timeSpent) }
+            LaunchedEffect(Unit) {
+                while(true) {
+                    delay(1000)
+                    seconds++
+                }
+            }
+            if (showTimer) {
+                Text(text = "${seconds/60}:${"%02d".format(seconds%60)}", fontSize = 20.sp, modifier = Modifier.height(30.dp))
             } else {
                 Spacer(modifier = Modifier.height(30.dp))
             }
+
             Row {
-                HexButton(onClick = { backToMenu(completed) }, text = "Back To Menu")
+                HexButton(onClick = { backToMenu(completed, seconds) }, text = "Back To Menu")
 
                 Spacer(modifier = Modifier.width(10.dp))
                 if (showHint) {

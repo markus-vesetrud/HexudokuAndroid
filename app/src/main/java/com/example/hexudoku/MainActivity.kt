@@ -48,10 +48,15 @@ fun MainContent() {
     var boardModel: BoardModel? by remember {
         mutableStateOf(null)
     }
+    var timeSpent by remember {
+        mutableStateOf(0)
+    }
 
-    val backToMenuFunction = { completed: Boolean ->
+    val backToMenuFunction = { completed: Boolean, ticks: Int ->
+        timeSpent = ticks
         if (completed) {
             boardModel = null
+            timeSpent = 0
         }
         navController.navigate("main menu") {
             popUpTo("main menu") { inclusive = true }
@@ -69,19 +74,16 @@ fun MainContent() {
         composable("board") {
 
             // Be aware! If boardModel is null the app will navigate to the main menu
-            CustomColumn {
-                if (boardModel != null) {
-                    BoardView(
-                        // Using the screenWidth directly makes the app misbehave when the width > the height
-                        // This has been fixed by disabling landscape mode
-                        boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
-                        boardModel = boardModel!!,
-                        backToMenu = backToMenuFunction,
-                        showHint = showHint,
-                        showTimer = showTimer,
-                    )
-                }
-            }
+            BoardView(
+                // Using the screenWidth directly makes the app misbehave when the width > the height
+                // This has been fixed by disabling landscape mode
+                boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
+                boardModel = boardModel!!,
+                backToMenu = backToMenuFunction,
+                showHint = showHint,
+                showTimer = showTimer,
+                timeSpent = timeSpent
+            )
         }
         composable("main menu") {
             CustomColumn {
@@ -200,8 +202,9 @@ fun MainContent() {
         }
         composable("about") {
             CustomColumn {
-                Spacer(modifier = Modifier.height(50.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 Text(text = "About", fontSize = 24.sp)
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     modifier = Modifier.width(300.dp),
                     textAlign = TextAlign.Center,
