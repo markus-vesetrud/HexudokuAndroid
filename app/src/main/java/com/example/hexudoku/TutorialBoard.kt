@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -18,6 +15,8 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import kotlin.math.sqrt
 
+
+val clusterCenterIDs = arrayOf("0:0", "-1:-3", "4:-2", "5:1", "1:3", "-4:2", "-5:-1")
 
 @Composable
 fun TutorialBoard(boardSize: Float, step: Int) {
@@ -32,17 +31,18 @@ fun TutorialBoard(boardSize: Float, step: Int) {
         "6:0" to 2, "4:2" to 0, "2:4" to 0, "6:2" to 0, "6:-2" to 0, "-5:3" to 2, "2:-2" to 0
     )
 
+    // hexSize is the length from the center of a hex to a corner
+    // The same as the side length of the hex
     val hexSize: Float = (boardSize - 20f)/(sqrt(3f)*8f)
     val colorArray = colorArray()
     val textColor: Int = colorToHex(MaterialTheme.colors.onSurface)
-    val errorColor: Int = colorToHex(MaterialTheme.colors.error)
 
     Canvas(modifier = androidx.compose.ui.Modifier
         .width(boardSize.dp)
         .height(boardSize.dp)
     ) {
 
-        // Draw the hexagons and borders
+        // Draw the hexagons
         for (i in (0..6)) {
             val group = BoardModel.hexIDGroups[3][i]
             for (hexID: String in group) {
@@ -50,7 +50,7 @@ fun TutorialBoard(boardSize: Float, step: Int) {
                 val y: Int = hexID.split(":")[1].toInt()
 
                 // Calculate the path around a hexagon
-                val path = Path().apply {
+                val hexPath = Path().apply {
                     moveTo(scaleX(x, hexSize).dp.toPx() + center.x, scaleY(y, hexSize).dp.toPx() + center.y)
                     relativeMoveTo(0f.dp.toPx(), -hexSize.dp.toPx())
 
@@ -66,47 +66,128 @@ fun TutorialBoard(boardSize: Float, step: Int) {
 
                 // Fill hexagons
                 drawPath(
-                    path = path,
+                    path = hexPath,
                     color = colorArray[i]
                 )
 
                 // Draw border
-                drawPath(
-                    path = path,
-                    Color.Black,
-                    style = Stroke(width = 3f)
-                )
-
-                when (step) {
-                    2 -> {
-                        drawLine(
-                            start = Offset(x= scaleX(-7.5f, hexSize).dp.toPx() + center.x, y = scaleY(-1f, hexSize).dp.toPx() + center.y),
-                            end = Offset(x= scaleX(5.5f, hexSize).dp.toPx() + center.x, y = scaleY(-1f, hexSize).dp.toPx() + center.y),
-                            color = Color.Red,
-                            strokeWidth = 10f
-                        )
-                    }
-                    3-> {
-                        drawLine(
-                            start = Offset(x= scaleX(-4.25f, hexSize).dp.toPx() + center.x, y = scaleY(-2.25f, hexSize).dp.toPx() + center.y),
-                            end = Offset(x= scaleX(2.25f, hexSize).dp.toPx() + center.x, y = scaleY(4.25f, hexSize).dp.toPx() + center.y),
-                            color = Color.Red,
-                            strokeWidth = 10f
-                        )
-                    }
-                    4 -> {
-                        drawLine(
-                            start = Offset(x= scaleX(-5.25f, hexSize).dp.toPx() + center.x, y = scaleY(3.25f, hexSize).dp.toPx() + center.y),
-                            end = Offset(x= scaleX(1.25f, hexSize).dp.toPx() + center.x, y = scaleY(-3.25f, hexSize).dp.toPx() + center.y),
-                            color = Color.Red,
-                            strokeWidth = 10f
-                        )
-                    }
-                    else -> {
-
-                    }
-                }
+                //  drawPath (
+                //     path = path,
+                //     Color.Black,
+                //     style = Stroke(width = 3f)
+                // )
             }
+        }
+
+        // Draw the borders
+        for (hexID: String in clusterCenterIDs) {
+            val x: Int = hexID.split(":")[0].toInt()
+            val y: Int = hexID.split(":")[1].toInt()
+
+            // Calculate the path around a hexagon
+            val thinInnerPath = Path().apply {
+                moveTo(scaleX(x, hexSize).dp.toPx() + center.x, scaleY(y, hexSize).dp.toPx() + center.y)
+                relativeMoveTo(0f.dp.toPx(), -hexSize.dp.toPx())
+
+                // Each of these 3 lines is moving along the center hexagon, then adding a line outwards
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                relativeMoveTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+
+                relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx())
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                relativeMoveTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx())
+                relativeMoveTo(0.dp.toPx(), (-hexSize).dp.toPx())
+
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                relativeMoveTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+
+                relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx())
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                relativeMoveTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx())
+                relativeMoveTo(0.dp.toPx(), (hexSize).dp.toPx())
+
+                close()
+            }
+
+            val thickOuterPath = Path().apply {
+                moveTo(scaleX(x, hexSize).dp.toPx() + center.x, scaleY(y, hexSize).dp.toPx() + center.y)
+                relativeMoveTo(0f.dp.toPx(), (-hexSize*2).dp.toPx())
+
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up right
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down right
+                relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx()) // Down
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down right
+                relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx()) // Down
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down left
+                relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx()) // Down
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down left
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up left
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down left
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up left
+                relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx()) // Up
+                relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up left
+                relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx()) // Up
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up right
+                relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx()) // Up
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up right
+                relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down right
+
+                close()
+            }
+
+
+            // Draw thin border
+            drawPath (
+                path = thinInnerPath,
+                Color.Black,
+                style = Stroke(width = 2.5f)
+            )
+
+            // Draw thick border
+            drawPath (
+                path = thickOuterPath,
+                Color.Black,
+                style = Stroke(width = 9f)
+            )
+        }
+
+        when (step) {
+            2 -> {
+                drawLine(
+                    start = Offset(x= scaleX(-7.5f, hexSize).dp.toPx() + center.x, y = scaleY(-1f, hexSize).dp.toPx() + center.y),
+                    end = Offset(x= scaleX(5.5f, hexSize).dp.toPx() + center.x, y = scaleY(-1f, hexSize).dp.toPx() + center.y),
+                    color = Color.Red,
+                    strokeWidth = 10f
+                )
+            }
+            3-> {
+                drawLine(
+                    start = Offset(x= scaleX(-4.25f, hexSize).dp.toPx() + center.x, y = scaleY(-2.25f, hexSize).dp.toPx() + center.y),
+                    end = Offset(x= scaleX(2.25f, hexSize).dp.toPx() + center.x, y = scaleY(4.25f, hexSize).dp.toPx() + center.y),
+                    color = Color.Red,
+                    strokeWidth = 10f
+                )
+            }
+            4 -> {
+                drawLine(
+                    start = Offset(x= scaleX(-5.25f, hexSize).dp.toPx() + center.x, y = scaleY(3.25f, hexSize).dp.toPx() + center.y),
+                    end = Offset(x= scaleX(1.25f, hexSize).dp.toPx() + center.x, y = scaleY(-3.25f, hexSize).dp.toPx() + center.y),
+                    color = Color.Red,
+                    strokeWidth = 10f
+                )
+            }
+            else -> {
+
+            }
+
         }
 
         // Show text
@@ -120,7 +201,7 @@ fun TutorialBoard(boardSize: Float, step: Int) {
             paint.textAlign = Paint.Align.CENTER
             paint.textSize = hexSize*2
             paint.color = textColor
-            paint.typeface = Typeface.DEFAULT
+            paint.typeface = Typeface.DEFAULT_BOLD
 
             drawContext.canvas.nativeCanvas.drawText(
                 stateToText(board[hexID]!!),

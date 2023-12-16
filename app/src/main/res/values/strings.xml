@@ -8,16 +8,16 @@
         You win if you manage to fill all the hexagons such that …
     </string>
     <string name="Tutorial1">
-        … there are only different numbers in every group with a different color …
+        … there are only different numbers in every cluster of 7 hexagons outlined by thick borders …
     </string>
     <string name="Tutorial2">
         … only different numbers in the direction of this red line …
     </string>
     <string name="Tutorial3">
-        … and only different numbers in the direction of this red line …
+        … and only different numbers along this red line …
     </string>
     <string name="Tutorial4">
-        … aaand only different numbers in the direction of this line.
+        … and only different numbers in this direction.
     </string>
     <string name="setting_light">Light</string>
     <string name="setting_dark">Dark</string>

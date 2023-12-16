@@ -93,18 +93,19 @@ fun MainContent(
     
     NavHost(navController = navController, startDestination = "main menu") {
         composable("board") {
-
-            // Be aware! If boardModel is null the app will navigate to the main menu
-            BoardView(
-                // Using the screenWidth directly makes the app misbehave when the width > the height
-                // This has been fixed by disabling landscape mode
-                boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
-                boardModel = boardModel!!,
-                backToMenu = backToMenuFunction,
-                showHint = showHint,
-                showTimer = showTimer,
-                timeSpent = timeSpent
-            )
+            CustomColumn {
+                // Be aware! If boardModel is null the app will navigate to the main menu
+                BoardView(
+                    // Using the screenWidth directly makes the app misbehave when the width > the height
+                    // This has been fixed by disabling landscape mode
+                    boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
+                    boardModel = boardModel!!,
+                    backToMenu = backToMenuFunction,
+                    showHint = showHint,
+                    showTimer = showTimer,
+                    timeSpent = timeSpent
+                )
+            }
         }
         composable("main menu") {
             CustomColumn {
@@ -304,7 +305,7 @@ fun CustomColumn(modifier: Modifier = Modifier.fillMaxSize(), content: @Composab
         modifier = modifier
     ) {
         Spacer(modifier = Modifier.height(24.dp))
-        Text(text = "Hexudoku", fontSize = 40.sp)
+        Text(text = stringResource(R.string.app_name), fontSize = 40.sp)
         content()
     }
 }

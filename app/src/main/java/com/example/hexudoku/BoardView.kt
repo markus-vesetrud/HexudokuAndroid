@@ -98,6 +98,8 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
         }
     }
 
+    // hexSize is the length from the center of a hex to a corner
+    // The same as the side length of the hex
     val hexSize: Float = (boardSize - 20f)/(sqrt(3f)*8f)
 
     val colorArray = colorArray()
@@ -105,6 +107,8 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
     var completed by remember {
         mutableStateOf(false)
     }
+
+    val clusterCenterIDs = arrayOf("0:0", "-1:-3", "4:-2", "5:1", "1:3", "-4:2", "-5:-1")
 
     // The empty surface is needed so this entire composable is not recomposed.
     Surface {
@@ -161,7 +165,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                     })
                 }) {
 
-                // Draw the hexagons and borders
+                // Draw the hexagons
                 for (i in (0..6)) {
                     val group = BoardModel.hexIDGroups[3][i]
                     for (hexID: String in group) {
@@ -169,7 +173,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                         val y: Int = hexID.split(":")[1].toInt()
 
                         // Calculate the path around a hexagon
-                        val path = Path().apply {
+                        val hexPath = Path().apply {
                             moveTo(scaleX(x, hexSize).dp.toPx() + center.x, scaleY(y, hexSize).dp.toPx() + center.y)
                             relativeMoveTo(0f.dp.toPx(), -hexSize.dp.toPx())
 
@@ -185,18 +189,99 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
 
                         // Fill hexagons
                         drawPath(
-                            path = path,
+                            path = hexPath,
                             color = colorArray[i]
                         )
 
                         // Draw border
-                        drawPath(
-                            path = path,
-                            Color.Black,
-                            style = Stroke(width = 3f)
-                        )
+                        //  drawPath (
+                        //     path = path,
+                        //     Color.Black,
+                        //     style = Stroke(width = 3f)
+                        // )
                     }
                 }
+
+                // Draw the borders
+                for (hexID: String in clusterCenterIDs) {
+                    val x: Int = hexID.split(":")[0].toInt()
+                    val y: Int = hexID.split(":")[1].toInt()
+
+                    // Calculate the path around a hexagon
+                    val thinInnerPath = Path().apply {
+                        moveTo(scaleX(x, hexSize).dp.toPx() + center.x, scaleY(y, hexSize).dp.toPx() + center.y)
+                        relativeMoveTo(0f.dp.toPx(), -hexSize.dp.toPx())
+
+                        // Each of these 3 lines is moving along the center hexagon, then adding a line outwards
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                        relativeMoveTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+
+                        relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx())
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                        relativeMoveTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                        relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx())
+                        relativeMoveTo(0.dp.toPx(), (-hexSize).dp.toPx())
+
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+                        relativeMoveTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+
+                        relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx())
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                        relativeMoveTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx())
+
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx())
+                        relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx())
+                        relativeMoveTo(0.dp.toPx(), (hexSize).dp.toPx())
+
+                        close()
+                    }
+
+                    val thickOuterPath = Path().apply {
+                        moveTo(scaleX(x, hexSize).dp.toPx() + center.x, scaleY(y, hexSize).dp.toPx() + center.y)
+                        relativeMoveTo(0f.dp.toPx(), (-hexSize*2).dp.toPx())
+
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up right
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down right
+                        relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx()) // Down
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down right
+                        relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx()) // Down
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down left
+                        relativeLineTo(0.dp.toPx(), (hexSize).dp.toPx()) // Down
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down left
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up left
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down left
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up left
+                        relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx()) // Up
+                        relativeLineTo((-hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up left
+                        relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx()) // Up
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up right
+                        relativeLineTo(0.dp.toPx(), (-hexSize).dp.toPx()) // Up
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (-hexSize/2f).dp.toPx()) // Up right
+                        relativeLineTo((hexSize* sqrt(3f) /2f).dp.toPx(), (hexSize/2f).dp.toPx()) // Down right
+
+                        close()
+                    }
+
+
+                    // Draw thin border
+                    drawPath (
+                        path = thinInnerPath,
+                        Color.Black,
+                        style = Stroke(width = 2.5f)
+                    )
+
+                    // Draw thick border
+                    drawPath (
+                        path = thickOuterPath,
+                        Color.Black,
+                        style = Stroke(width = 9f)
+                    )
+                }
+
 
                 // Show text
                 for (hexID: String in BoardModel.hexIDArray) {
