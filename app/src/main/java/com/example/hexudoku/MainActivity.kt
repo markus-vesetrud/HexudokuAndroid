@@ -139,28 +139,28 @@ fun MainContent(
                 Spacer(modifier = Modifier.height(50.dp))
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 15)
+                        boardModel = BoardModel(null, null, 15, 1328)
                         navController.navigate("board")
                     },
                     text = "Short"
                 )
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 25)
+                        boardModel = BoardModel(null, null, 25, 1)
                         navController.navigate("board")
                     },
                     text = "Medium"
                 )
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 35)
+                        boardModel = BoardModel(null, null, 35, 1)
                         navController.navigate("board")
                     },
                     text = "Long"
                 )
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 50)
+                        boardModel = BoardModel(null, null, 50, 1)
                         navController.navigate("board")
                     },
                     text = "Max"
