@@ -2,6 +2,7 @@ package com.example.hexudoku
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -67,11 +68,7 @@ internal fun colorArray(): Array<Color> {
 }
 
 @Composable
-internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (Boolean, Int) -> Unit, showHint: Boolean, showTimer: Boolean, timeSpent: Int) {
-    if (boardModel == null) {
-        backToMenu(false, 0)
-        return
-    }
+internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Boolean, Int) -> Unit, showHint: Boolean, showTimer: Boolean, timeSpent: Int) {
     /*
     * A recomposition of the entire composable will trigger another initialization of the
     * boardModel, rather than keeping the old one. This will result in the board becoming scrambled.
@@ -79,23 +76,20 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
     * content inside the surface is recomposed, not the entire composable.
     */
 
-    val hexChangeable = mutableMapOf<String, Boolean>()
-    val hexTextColor = mutableMapOf<String, MutableState<Int>>()
-    val board = mutableMapOf<String, MutableState<Int>>()
+    // val hexChangeable = Array(49) { hexID -> boardModel.board[hexID] == 0 }
+    // val hexTextColor = Array(49) { remember { mutableStateOf(textColor) } }
+    // val board = Array(49) { hexID -> remember { mutableStateOf(boardModel.board[hexID]) } }
+
     val textColor: Int = colorToHex(MaterialTheme.colors.onSurface)
     val errorColor: Int = colorToHex(MaterialTheme.colors.error)
-    for (hexID in BoardModel.hexIDArray) {
 
-        hexChangeable[hexID] = (boardModel.board[hexID]!! == 0)
-        hexTextColor[hexID] = remember {
-            mutableStateOf(textColor)
-        }
+    val hexChangeable = Array(49) { hexID -> boardModel.board[hexID] == 0 }
+    val hexTextColor = Array(49) {  mutableStateOf(textColor) }
+    val board = Array(49) { mutableStateOf(0) }
 
-        board[hexID] = if (hexChangeable[hexID]!!) {
-            remember { mutableStateOf(0) }
-        } else {
-            remember { mutableStateOf(boardModel.board[hexID]!!) }
-        }
+    for (hexID in 0..48) {
+        hexTextColor[hexID] = remember { mutableStateOf(textColor) }
+        board[hexID] = remember { mutableStateOf(boardModel.board[hexID]) }
     }
 
     // hexSize is the length from the center of a hex to a corner
@@ -104,11 +98,9 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
 
     val colorArray = colorArray()
 
-    var completed by remember {
-        mutableStateOf(false)
-    }
+    var completed by remember { mutableStateOf(boardModel.isBoardSolved()) }
 
-    val clusterCenterIDs = arrayOf("0:0", "-1:-3", "4:-2", "5:1", "1:3", "-4:2", "-5:-1")
+    val clusterCenterIDs = arrayOf(Pair(0, 0), Pair(-1, -3), Pair(4, -2), Pair(5, 1), Pair(1, 3), Pair(-4, 2), Pair(-5, -1))
 
     // The empty surface is needed so this entire composable is not recomposed.
     Surface {
@@ -132,18 +124,12 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                     detectTapGestures(onTap = { offset ->
 
                         var minDistance = (hexSize + 1).dp.toPx()
-                        var closestHexID = ""
-                        for (hexID in BoardModel.hexIDArray) {
-                            val x: Float =
-                                scaleX(
-                                    hexID.split(":")[0].toInt(),
-                                    hexSize
-                                ).dp.toPx() + size.width / 2
-                            val y: Float =
-                                scaleY(
-                                    hexID.split(":")[1].toInt(),
-                                    hexSize
-                                ).dp.toPx() + size.height / 2
+                        var closestHexID = -1
+                        for (hexID in BoardModel.hexPositionArray.indices) {
+                            val (xIndex, yIndex) = BoardModel.hexPositionArray[hexID]
+                            val x: Float = scaleX(xIndex, hexSize).dp.toPx() + size.width / 2
+                            val y: Float = scaleY(yIndex, hexSize).dp.toPx() + size.height / 2
+
                             val distance = calculateDistance(x, y, offset.x, offset.y)
                             if (minDistance > distance) {
                                 minDistance = distance
@@ -151,13 +137,11 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                             }
                         }
 
-                        if (closestHexID != "" && board[closestHexID] != null) {
-                            if (!completed && hexChangeable[closestHexID]!!) {
-                                board[closestHexID]!!.value = (board[closestHexID]!!.value + 1) % 8
-                                boardModel.board[closestHexID] = board[closestHexID]!!.value
+                        if (closestHexID != -1 && !completed && hexChangeable[closestHexID]) {
+                            board[closestHexID].value = (board[closestHexID].value + 1) % 8
+                            boardModel.board[closestHexID] = board[closestHexID].value
 
-                                hexTextColor[closestHexID]!!.value = textColor
-                            }
+                            hexTextColor[closestHexID].value = textColor
                         }
 
                         completed = boardModel.isBoardSolved()
@@ -166,11 +150,9 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                 }) {
 
                 // Draw the hexagons
-                for (i in (0..6)) {
-                    val group = BoardModel.hexIDGroups[3][i]
-                    for (hexID: String in group) {
-                        val x: Int = hexID.split(":")[0].toInt()
-                        val y: Int = hexID.split(":")[1].toInt()
+                for (i in BoardModel.hexIDGroups[0].indices) {
+                    for (hexIndex in BoardModel.hexIDGroups[0][i]) {
+                        val (x, y) = BoardModel.hexPositionArray[hexIndex]
 
                         // Calculate the path around a hexagon
                         val hexPath = Path().apply {
@@ -203,9 +185,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                 }
 
                 // Draw the borders
-                for (hexID: String in clusterCenterIDs) {
-                    val x: Int = hexID.split(":")[0].toInt()
-                    val y: Int = hexID.split(":")[1].toInt()
+                for ((x,y) in clusterCenterIDs) {
 
                     // Calculate the path around a hexagon
                     val thinInnerPath = Path().apply {
@@ -284,25 +264,22 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
 
 
                 // Show text
-                for (hexID: String in BoardModel.hexIDArray) {
-
-
-                    val x: Int = hexID.split(":")[0].toInt()
-                    val y: Int = hexID.split(":")[1].toInt()
+                for (hexID in BoardModel.hexPositionArray.indices) {
+                    val (x,y) = BoardModel.hexPositionArray[hexID]
 
                     val paint = Paint()
                     paint.textAlign = Paint.Align.CENTER
                     paint.textSize = hexSize*2
-                    paint.color = hexTextColor[hexID]!!.value
+                    paint.color = hexTextColor[hexID].value
 
-                    if (hexChangeable[hexID]!!) {
+                    if (hexChangeable[hexID]) {
                         paint.typeface = Typeface.DEFAULT
                     } else {
                         paint.typeface = Typeface.DEFAULT_BOLD
                     }
 
                     drawContext.canvas.nativeCanvas.drawText(
-                        stateToText(board[hexID]!!.value),
+                        stateToText(board[hexID].value),
                         scaleX(x, hexSize).dp.toPx() + center.x,
                         scaleY(y, hexSize).dp.toPx() + center.y + (paint.textSize/8).dp.toPx(),
                         paint
@@ -331,10 +308,10 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel?, backToMenu: (B
                     HexButton(enabled = !completed, onClick = {
                         val (hexID, number) = boardModel.hint()
                         if (number == 0) {
-                            hexTextColor[hexID]!!.value = errorColor
+                            hexTextColor[hexID].value = errorColor
                         } else {
-                            board[hexID]!!.value = number
-                            boardModel.board[hexID] = board[hexID]!!.value
+                            board[hexID].value = number
+                            boardModel.board[hexID] = board[hexID].value
 
                             completed = boardModel.isBoardSolved()
                         }

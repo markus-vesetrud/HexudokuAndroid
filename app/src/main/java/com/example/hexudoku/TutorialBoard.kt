@@ -43,11 +43,9 @@ fun TutorialBoard(boardSize: Float, step: Int) {
     ) {
 
         // Draw the hexagons
-        for (i in (0..6)) {
-            val group = BoardModel.hexIDGroups[3][i]
-            for (hexID: String in group) {
-                val x: Int = hexID.split(":")[0].toInt()
-                val y: Int = hexID.split(":")[1].toInt()
+        for (i in BoardModel.hexIDGroups[0].indices) {
+            for (hexIndex in BoardModel.hexIDGroups[0][i]) {
+                val (x, y) = BoardModel.hexPositionArray[hexIndex]
 
                 // Calculate the path around a hexagon
                 val hexPath = Path().apply {
@@ -191,11 +189,7 @@ fun TutorialBoard(boardSize: Float, step: Int) {
         }
 
         // Show text
-        for (hexID: String in BoardModel.hexIDArray) {
-
-
-            val x: Int = hexID.split(":")[0].toInt()
-            val y: Int = hexID.split(":")[1].toInt()
+        for ((x,y) in BoardModel.hexPositionArray) {
 
             val paint = Paint()
             paint.textAlign = Paint.Align.CENTER
@@ -204,7 +198,7 @@ fun TutorialBoard(boardSize: Float, step: Int) {
             paint.typeface = Typeface.DEFAULT_BOLD
 
             drawContext.canvas.nativeCanvas.drawText(
-                stateToText(board[hexID]!!),
+                stateToText(board["$x:$y"]!!),
                 scaleX(x, hexSize).dp.toPx() + center.x,
                 scaleY(y, hexSize).dp.toPx() + center.y + (paint.textSize/8).dp.toPx(),
                 paint

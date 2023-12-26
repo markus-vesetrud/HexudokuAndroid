@@ -1,114 +1,98 @@
 package com.example.hexudoku
 
 import android.util.Log
-import kotlin.math.min
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
 @OptIn(ExperimentalTime::class)
-class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?, numbersToRemove: Int, seed: Int) {
-    var board: MutableMap<String, Int>
-        private set
-    private var solvedBoard: Map<String, Int>
+class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: Int, seed: Int) {
 
     private val random: Random
 
+    var board: Array<Int>
+        private set
+
+    private var solvedBoard: Array<Int>
+
+    // This array lacks the 7 centre hexes, as they are filled separately
+    private val almostOptimizedHexSequence = arrayOf(10, 9, 3, 2, 0, 4, 1, 11, 19, 12, 5, 6, 13, 20, 26, 32, 33, 27, 34, 41, 40, 39, 38, 45, 46, 48, 47, 44, 37, 29, 36, 43, 42, 35, 28, 22, 16, 15, 21, 14, 7, 8)
+    // This array contains the random order in which the values of the above hexes are checked
+    private val randomValueSequences: Array<List<Int>>
+
+
     init {
-        this.board = board ?: HashMap()
-        this.solvedBoard = solvedBoard ?: HashMap()
         this.random = Random(seed)
 
+        this.board = board ?: Array(49) { 0 }
+        this.solvedBoard = solvedBoard ?: Array(49) { 0 }
+        this.randomValueSequences = Array(almostOptimizedHexSequence.size) { listOf(1,2,3,4,5,6,7).shuffled(this.random) }
+
         if (board == null) {
+
             var timeTaken = measureTime {
                 fillMap()
             }
-            Log.d("Time old fill", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
+            Log.d("Time to fill board", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
+
             timeTaken = measureTime {
                 removeXNumbers(numbersToRemove)
             }
-            Log.d("Time old remove", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
+            Log.d("Time to remove", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
+            Log.d("board", this.board.toList().toString())
 
         }
-        val solvedBoard2: Array<Int>
-        var timeTaken = measureTime {
-            solvedBoard2 = fillMap2()
-        }
-        Log.d("Time new fill", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
-
-        timeTaken = measureTime {
-            removeXNumbers2(numbersToRemove, solvedBoard2)
-        }
-        Log.d("Time new remove", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
-
 
     }
 
     // Finds the hexes with only one possible number and returns them
-    private fun calculateNext(): Map<String, Int> {
-        val result: MutableMap<String, Int> = HashMap()
-        for (hexID in hexIDArray) {
+    private fun calculateNext(): List<Pair<Int, Int>> {
+        val result = mutableListOf<Pair<Int, Int>>()
+        for (hexID in 0..48) {
             // Checks that there are exactly one possible number in this cell, if so it is
             // added to the result
-            val possibleNumbers: MutableList<Int> = ArrayList(7)
+
+            // possibleNumbers has a bit representation that encodes the numbers that are possible
+            // at this hex, if the bit on the x'th position from the left is a 1, then x is possible
+            var possibleNumbers = 0
             for (number in 1..7) {
                 if (checkPossible(hexID, number)) {
-                    possibleNumbers.add(number)
+                    possibleNumbers = possibleNumbers or (0b1 shl (number))
                 }
             }
-            if (possibleNumbers.size == 1) {
-                result[hexID] = possibleNumbers[0]
+            // This checks that possibleNumbers contain exactly one bit
+            // if (possibleNumbers != 0 && ((possibleNumbers and (possibleNumbers-1)) == 0)) {}
+            when (possibleNumbers) {
+                0b00000010 -> result.add(Pair(hexID, 1))
+                0b00000100 -> result.add(Pair(hexID, 2))
+                0b00001000 -> result.add(Pair(hexID, 3))
+                0b00010000 -> result.add(Pair(hexID, 4))
+                0b00100000 -> result.add(Pair(hexID, 5))
+                0b01000000 -> result.add(Pair(hexID, 6))
+                0b10000000 -> result.add(Pair(hexID, 7))
             }
         }
         return result
     }
 
-    // Gets the group the given hex is in with the given groupIndex
-    private fun getGroup(hexID: String, groupIndex: Int): Array<String> {
-        for (i in hexIDGroups[groupIndex].indices) {
-            for (j in hexIDGroups[groupIndex][i].indices) {
-                if (hexIDGroups[groupIndex][i][j] == hexID) {
-                    return hexIDGroups[groupIndex][i]
-                }
-            }
-        }
-        throw IllegalStateException("Error in getGroup method")
-    }
-
     // Checks whether the given number can be placed in the given hex
-    private fun checkPossible(hexID: String, number: Int): Boolean {
+    private fun checkPossible(hexID: Int, number: Int): Boolean {
         if (board[hexID] != 0) {
             return false
         }
-        for (groupIndex in 0..3) {
-            for (otherHexID in getGroup(hexID, groupIndex)) {
-                if (board[otherHexID] == number) {
-                    return false
-                }
+        for (otherHexID in constraints[hexID]) {
+            if (board[otherHexID] == number) {
+                return false
             }
         }
         return true
     }
 
-    // Gets the hexID after the given hexID in the hexIDArray
-    private fun getNextHexID(hexID: String): String? {
-        for (i in 0 until hexIDArray.size - 1) {
-            if (hexIDArray[i] == hexID) {
-                return hexIDArray[i + 1]
-            }
-        }
-        return null
-    }
-
-    // Returns a random permutation of an array of 7 numbers
-    private fun randomPermutationArray(): List<Int> {
-        val choices: MutableList<Int> = mutableListOf(1,2,3,4,5,6,7)
-        val result: MutableList<Int> = ArrayList(7)
-        while (choices.isNotEmpty()) {
-            result.add(choices.removeAt(Random.nextInt(choices.size)))
-        }
-        return result
+    /*
+    private fun checkMoreThanOneBit(byte: Byte): Boolean {
+        val num = byte.toInt()
+        return (num and (num-1)) != 0
     }
 
     // New idea for solver
@@ -123,28 +107,36 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
 
     private fun fillMap2(): Array<Int> {
 
+        // The domain variable is a array of 49 bytes where each byte's digit signifies whether the
+        // index of that digit is possible at that hex. So for example will domain[28] & 0b01000000u != 0u
+        // mean that 1 is possible at that location
 
-        var domain: Array<MutableList<Int>> = Array(49) { mutableListOf(1,2,3,4,5,6,7) }
+        var domain: Array<Byte> = Array(49) { 0b01111111 }
         val board: Array<Int> = Array(49) { 0 }
         val solvedBoard: Array<Int> = Array(49) { 0 }
 
-        val centreIndices = arrayOf(17, 18, 23, 24, 25, 30, 31)
+
 
         // Randomly set the centre
-        centreIndices.shuffle(this.random)
+        val centreIndices = listOf(17, 18, 23, 24, 25, 30, 31).shuffled(this.random)
         for (i in centreIndices.indices) {
-            domain[centreIndices[i]] = mutableListOf(i+1)
+            domain[centreIndices[i]] = (0b1 shl (6-i)).toByte()
         }
+
+        logDomain2(domain)
+
 
         val (_, firstReducedDomain) = arcConsistency3(domain)
         domain = firstReducedDomain
 
 
-        fun recursiveFillMap2(domain: Array<MutableList<Int>>): Pair<Boolean, Array<MutableList<Int>>> {
+        fun recursiveFillMap2(inputDomain: Array<Byte>): Pair<Boolean, Array<Byte>> {
+            val domain = inputDomain.copyOf()
+            // logDomain2(domain)
 
             val notFixedIndices = mutableListOf<Int>()
             for (i in domain.indices) {
-                if (domain[i].size > 1) {
+                if (checkMoreThanOneBit(domain[i])) {
                     notFixedIndices.add(i)
                 }
             }
@@ -155,106 +147,86 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
             }
 
             val selectedHex = notFixedIndices[this.random.nextInt(notFixedIndices.size)]
-            domain[selectedHex].shuffle(this.random)
+            val originalValue: Byte = domain[selectedHex]
 
-            for (hexValue in domain[selectedHex]) {
-                domain[selectedHex] = mutableListOf(hexValue)
-                val (successAC3, reducedDomainAC3) = arcConsistency3(deepCopyDomain(domain))
-                if (successAC3) {
+            for (hexValue in 1..7) {
+                val hexValueInt = (0b1 shl (7-hexValue))
+                // Check if hexValue is in the domain of selectedHex
+                if ((hexValueInt and domain[selectedHex].toInt()) != 0) {
+                    // Temporarily set the domain of selectedHex to only be hexValue
+                    // Log.d("note", "Setting $selectedHex to $hexValue")
+                    domain[selectedHex] = hexValueInt.toByte()
 
-                    val (successRecursion, reducedDomainRecursion) = recursiveFillMap2(deepCopyDomain(reducedDomainAC3))
+                    val (successAC3, reducedDomainAC3) = arcConsistency3(domain)
+                    if (successAC3) {
 
-                    if (successRecursion) {
-                        return Pair(true, reducedDomainRecursion)
+                        val (successRecursion, reducedDomainRecursion) = recursiveFillMap2(reducedDomainAC3)
+
+                        if (successRecursion) {
+                            return Pair(true, reducedDomainRecursion)
+                        }
                     }
+                    domain[selectedHex] = originalValue
                 }
             }
 
+            // Log.d("note", "Resetting $selectedHex")
             return Pair(false, domain)
 
         }
-        /*
-        while (true) {
-            backStack.addLast(deepCopyDomain(domain))
-            Log.d("domain from fill map", "${domain.toList()}")
-
-            // Find all hexIndices that has more than one option for its value
-            notFixedIndices.clear()
-            for (i in domain.indices) {
-                if (domain[i].size > 1) {
-                    notFixedIndices.add(i)
-                }
-            }
-            if (notFixedIndices.isEmpty()) {
-                // If every hex has a domain of exactly 1, then return
-                break
-            }
-            // Redo this part
-            // On the selected hex, we should loop through all the possible values
-            // When one doesn't work, we try the next value
-            // It can not work due to an immidiate issue with AC3, or due to back tracking
-            // Use recursion
-            selectedHex = notFixedIndices[this.random.nextInt(notFixedIndices.size)]
-            selectedHexValue = domain[selectedHex][this.random.nextInt(domain[selectedHex].size)]
-
-            domain[selectedHex] = mutableListOf(selectedHexValue)
-
-            val (success, reducedDomain) = arcConsistency3(domain)
-            if (!success) {
-                // If the arc consistency algorithm returns false, then the last selected hex lead to that issue
-                // Therefore we need to backtrack, so revert to the state at the beginning of the loop
-                domain = backStack.removeLastOrNull()!!
-
-                // Remember that in this state the selected hex and that value can not be selected again
-                domain[selectedHex].remove(selectedHexValue)
-            } else {
-                domain = reducedDomain
-            }
-
-        }
-        */
 
         val (successBuild, finalDomain) = recursiveFillMap2(domain)
-        Log.d("domain from fill map", "success: $successBuild domain: ${finalDomain.toList()}")
+        Log.d("domain from fill map", "success: $successBuild domain: ${logDomain2(finalDomain)}")
 
         for (i in finalDomain.indices) {
-            solvedBoard[i] = finalDomain[i][0]
-        }
-        return  solvedBoard
-    }
-
-    private fun logDomain(domain: Array<MutableList<Int>>) {
-        for (i in domain.indices) {
-            Log.d(i.toString(), domain[i].toString())
-        }
-    }
-
-    private fun deepCopyDomain(domain: Array<MutableList<Int>>): Array<MutableList<Int>> {
-        val newDomain = Array<MutableList<Int>>(domain.size) { mutableListOf() }
-        for (i in domain.indices) {
-            newDomain[i].addAll(domain[i])
-        }
-        return newDomain
-
-    }
-
-    private fun arcReduce(x: Int, y: Int, domain: Array<MutableList<Int>>): Pair<Boolean, Array<MutableList<Int>>> {
-        // Assumes no domains are empty
-        for (xValue in domain[x]) {
-            // Checks if it is possible to find a yValue in the domain of y that can satisfy the condition that xValue != yValue
-            // That is always true unless the domain of y contains only xValue
-            if (domain[y].size == 1 && domain[y][0] == xValue) {
-                domain[x].remove(xValue)
-                // Normally arc reduce cannot return early, but in this case there will be at most 1 change
-                return Pair(true, domain)
+            when (finalDomain[i].toInt()) {
+                0b00000001 -> solvedBoard[i] = 7
+                0b00000010 -> solvedBoard[i] = 6
+                0b00000100 -> solvedBoard[i] = 5
+                0b00001000 -> solvedBoard[i] = 4
+                0b00010000 -> solvedBoard[i] = 3
+                0b00100000 -> solvedBoard[i] = 2
+                0b01000000 -> solvedBoard[i] = 1
+                else -> solvedBoard[i] = -1
             }
         }
-        return Pair(false, domain)
+
+        return solvedBoard
+
+    }
+    private fun logDomain2(domain: Array<Byte>) {
+        val showDomain = List<MutableList<Int>>(49) { mutableListOf()}
+        for (i in domain.indices) {
+            for (j in 1..7) {
+                if (((0b1 shl (7-j)) and domain[i].toInt()) != 0) {
+                    showDomain[i].add(j)
+                }
+            }
+        }
+        Log.d("domain byte", showDomain.toString())
     }
 
-    private fun arcConsistency3(startingDomain: Array<MutableList<Int>>): Pair<Boolean, Array<MutableList<Int>>> {
+    private fun arcReduce(x: Int, y: Int, domain: Array<Byte>): Boolean {
+        // Assumes no domains are empty
+        for (xValue in 1..7) {
+            val xValueInt = (0b1 shl (7-xValue))
+            // Check if xValue is in the domain of x AND that xValue is the only value in the domain of y
+            // Checks if it is possible to find a yValue in the domain of y that can satisfy the condition that xValue != yValue
+            // That is always true unless the domain of y contains only xValue
+            if (((xValueInt and domain[x].toInt()) != 0) && (xValueInt == domain[y].toInt())) {
+                // This updates the domain variable outside the function
+                domain[x] = (domain[x].toInt() and xValueInt.inv()).toByte()
+                // Normally arc reduce cannot return early, but in this case there will be at most 1 change
+                return true
+            }
+        }
+        return false
+    }
 
-        var domain = startingDomain
+    private fun arcConsistency3(inputDomain: Array<Byte>): Pair<Boolean, Array<Byte>> {
+
+        val domain = inputDomain.copyOf()
+
         val worklist: MutableSet<Pair<Int, Int>> = mutableSetOf()
         for (i in constraints.indices) {
             for (j in constraints[i]) {
@@ -266,11 +238,12 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
             val (x,y) = worklist.firstOrNull()!!
             worklist.remove(Pair(x, y))
 
-            val (changed, reducedDomain) = arcReduce(x, y, domain)
+            // The domain may be changed by this function
+            val changed = arcReduce(x, y, domain)
 
             if (changed) {
-                domain = reducedDomain
-                if (domain[x].isEmpty()) {
+                // If the domain is empty
+                if (domain[x].toInt() == 0) {
                     // The problem is unsolvable, return false
                     return Pair(false, domain)
                 } else {
@@ -290,22 +263,22 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
 
     }
 
-    private fun singleIterationAC3(startingDomain: Array<MutableList<Int>>, worklist: MutableSet<Pair<Int, Int>>):
-            Triple<Boolean, Array<MutableList<Int>>, MutableSet<Pair<Int, Int>>> {
-        var domain = startingDomain
+
+    // This function will change the given domain, unlike the normal AC3 function I wrote
+    private fun singleIterationAC3(domain: Array<Byte>, worklist: MutableSet<Pair<Int, Int>>):
+            Pair<Boolean, MutableSet<Pair<Int, Int>>> {
         val futureWorklist = mutableSetOf<Pair<Int, Int>>()
 
         while(worklist.isNotEmpty()) {
             val (x,y) = worklist.firstOrNull()!!
             worklist.remove(Pair(x, y))
 
-            val (changed, reducedDomain) = arcReduce(x, y, domain)
+            val changed = arcReduce(x, y, domain)
 
             if (changed) {
-                domain = reducedDomain
-                if (domain[x].isEmpty()) {
+                if (domain[x].toInt() == 0) {
                     // The problem is unsolvable, return false
-                    return Triple(false, domain, futureWorklist)
+                    return Pair(false, futureWorklist)
                 } else {
                     // Find all z such that there is a relation (x,z) or (z,x)
                     // In this case the relations are symmetric and all the relations are captured in the constraints array
@@ -319,12 +292,12 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
             }
         }
 
-        return Triple(true, domain, futureWorklist)
+        return Pair(true, futureWorklist)
     }
 
     // This is a faster variant of just running AC3, as this algorithm can stop before the entire board is filled
-    private fun checkHexCanBeFilled(hexID: Int, startingDomain: Array<MutableList<Int>>): Boolean {
-        var domain = startingDomain
+    private fun checkHexCanBeFilled(hexID: Int, startingDomain: Array<Byte>): Boolean {
+        val domain = startingDomain.copyOf()
 
         var worklist: MutableSet<Pair<Int, Int>> = mutableSetOf()
         for (i in constraints.indices) {
@@ -334,14 +307,13 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
         }
 
         while (worklist.isNotEmpty()) {
-            val (success, newDomain, newWorklist) = singleIterationAC3(domain, worklist)
-            domain = newDomain
-            worklist = newWorklist
-
+            val (success, futureWorklist) = singleIterationAC3(domain, worklist)
+            worklist = futureWorklist
             if (!success) {
                 return false
             }
-            if (domain[hexID].size == 1) {
+            // If there is exactly one element at hexID we can stop, as we are guaranteed the rest will be filled too
+            if (domain[hexID].toInt() != 0 && !checkMoreThanOneBit(domain[hexID])) {
                 return true
             }
         }
@@ -362,124 +334,100 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
     private fun removeXNumbers2(x: Int, solvedBoard: Array<Int>): Array<Int> {
 
         val board = solvedBoard.copyOf()
-        val domain: Array<MutableList<Int>> = Array(49) { mutableListOf(1,2,3,4,5,6,7) }
-        for (i in solvedBoard.indices) {
-            domain[i] = mutableListOf(solvedBoard[i])
-        }
+        // Set up the domain to be 0b01000000 if the board has a 1 and 0b00000001 if the board has a 7
+        val domain: Array<Byte> = Array(49) { i -> (0b1 shl (7-solvedBoard[i])).toByte() }
 
 
-        var untestedHexes = MutableList(49) {i -> i}
-        untestedHexes.shuffle(this.random)
-        var remaining = x
-
-        // Start by removing at most 7 numbers, as removing at most 7 are guaranteed to not
-        // cause problems (I think)
-        // This is only for speeding it up byt doing hte first 7 at once
-        for (i in 0 until min(x, 7)) {
-            // Set the domain of those hexes to have every possible number
-            // The elements in untestedHexes are not removed, in case this approach fails
-            domain[untestedHexes[i]] = mutableListOf(1,2,3,4,5,6,7)
-        }
-        val (success, newDomain) = arcConsistency3(deepCopyDomain(domain))
-
-        if (success && domainIsFilled(newDomain)) {
-            // if we have removed everything we need to, return early
-            if (x < 7) {
-                for (i in domain.indices) {
-                    if (domain[i].size == 1) {
-                        board[i] = domain[i][0]
-                    } else {
-                        board[i] = 0
-                    }
-                }
-                return board
-            } else {
-                // Remove the first 7 elements from untestedHexes we are already done with
-                untestedHexes = untestedHexes.slice(7 until untestedHexes.size).toMutableList()
-                remaining -= 7
-            }
-        } else {
-            // Reset the domain
-            for (i in solvedBoard.indices) {
-                domain[i] = mutableListOf(solvedBoard[i])
-            }
-        }
-        Log.d("domain", "${domain.toList()}")
-
+        var untestedHexes = (List(49) {i -> i}).shuffled(this.random).toMutableList()
 
         // Now remove numbers one by one
         // At this point 7 hexes has already been removed, or 0 has been removed if something went wrong
         // In either case domain and untestedHexes should have values that make sense
-        while (remaining > 0) {
+        for (i in 0 until x) {
+            if (untestedHexes.isEmpty()) {
+                break
+            }
             val nextHex = untestedHexes.removeAt(0)
             // Reduce the domain
-            domain[nextHex] = mutableListOf(1,2,3,4,5,6,7)
-            val (success, newDomain) = arcConsistency3(deepCopyDomain(domain))
-
-            if (!success || !checkHexCanBeFilled(nextHex, newDomain)) {
+            domain[nextHex] = 0b01111111
+            if (!checkHexCanBeFilled(nextHex, domain)) {
                 // If the hex cannot be removed, then reset the domain
-                domain[nextHex] = mutableListOf(solvedBoard[nextHex])
+                domain[nextHex] = (0b1 shl (7-solvedBoard[nextHex])).toByte()
             }
             // Reduce the remaining no matter what
-            remaining--
         }
 
         for (i in domain.indices) {
-            if (domain[i].size == 1) {
-                board[i] = domain[i][0]
-            } else {
-                board[i] = 0
+            when (domain[i].toInt()) {
+                0b00000001 -> board[i] = 7
+                0b00000010 -> board[i] = 6
+                0b00000100 -> board[i] = 5
+                0b00001000 -> board[i] = 4
+                0b00010000 -> board[i] = 3
+                0b00100000 -> board[i] = 2
+                0b01000000 -> board[i] = 1
+                else -> board[i] = -1
             }
         }
-        Log.d("Board", board.toList().toString())
+
         return board
 
     }
+    */
 
-
-    private fun recursiveFillMap(currentHexID: String): Boolean {
-        for (number in randomPermutationArray()) {
+    /*
+     * A very simple function that uses backtracking to create a new board
+     * It is fast because
+     * 1. Calls to random number generators are precomputed
+     * 2. The first 7 hexes are precomputed and guaranteed to not need backtracking
+     * 3. almostOptimizedHexSequence puts the hexes in a sequence such that the next hex will quite
+     * often have very few possible numbers (employing a general heuristic for CSPs)
+     * 4. Very little memory is required, as the same board can be reused since the method is so simple
+     */
+    private fun recursiveFillMap(currentHexIndex: Int): Boolean {
+        val currentHexID = this.almostOptimizedHexSequence[currentHexIndex]
+        for (number in this.randomValueSequences[currentHexIndex]) {
             if (checkPossible(currentHexID, number)) {
+                // Try filling in this hex before moving on to the next function call
                 board[currentHexID] = number
-                val nextHexID = getNextHexID(currentHexID)
-                // If the end of the hexIDArray is reached, or the next function in line returns
-                // true, then return true
-                if (nextHexID == null || recursiveFillMap(nextHexID)) {
+                // If the end of the almostOptimizedHexSequence is reached, or the next
+                // function in line returns true, then return true
+                if (currentHexIndex == 41 || recursiveFillMap(currentHexIndex + 1)) {
                     return true
                 }
+                // Reset the change made by this try
                 board[currentHexID] = 0
             }
         }
+        // All numbers have been tried for this hex and none of the worked, therefore the
+        // change made in the preceding call did not work out
         return false
     }
 
+    /*
+     * Fills the board by precomputing the centre and calling the recursiveFillMap function
+     */
     private fun fillMap() {
-        for (hexID in hexIDArray) {
-            board[hexID] = 0
+        board = Array(49) { 0 }
+        // Randomly set the centre
+        val centreIndices = listOf(17, 18, 23, 24, 25, 30, 31).shuffled(this.random)
+        for (i in centreIndices.indices) {
+            board[centreIndices[i]] = i+1
         }
-        recursiveFillMap(hexIDArray[0])
-        solvedBoard = HashMap(board)
+        recursiveFillMap(0)
+        solvedBoard = board.copyOf()
     }
 
-    private fun boardIsFilled(): Boolean {
-        for (hexID in hexIDArray) {
-            if (board[hexID] == 0) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun boardIsSolvable(): Boolean {
-        val startingBoardCopy: MutableMap<String, Int> = HashMap(board)
-        while (!boardIsFilled()) {
+    private fun hexCanBeDetermined(hexID: Int): Boolean {
+        val startingBoardCopy = board.copyOf()
+        while (board[hexID] == 0) {
             val results = calculateNext()
             if (results.isEmpty()) {
                 board = startingBoardCopy
                 return false
             }
-            for (result in results) {
-                board[result.key] = result.value
+            for ((resultHexID, value) in results) {
+                board[resultHexID] = value
             }
         }
         board = startingBoardCopy
@@ -488,27 +436,23 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
 
     private fun removeXNumbers(x: Int) {
         var remaining = x
-        val temporaryHexIDArray = mutableListOf(*hexIDArray)
-        val randomIDArray = mutableListOf<String>()
-        while (temporaryHexIDArray.isNotEmpty()) {
-            randomIDArray.add(temporaryHexIDArray.removeAt(Random.nextInt(temporaryHexIDArray.size)))
-        }
+        val randomIDArray = List(49) {i -> i}.shuffled(this.random).toMutableList()
+
 
         while (randomIDArray.isNotEmpty() && remaining > 0) {
             remaining--
             val hexID = randomIDArray.removeAt(0)
-            val temporary = board[hexID]!!
+            val oldValue = board[hexID]
             board[hexID] = 0
-            if (!boardIsSolvable()) {
-                board[hexID] = temporary
+            if (!hexCanBeDetermined(hexID)) {
+                board[hexID] = oldValue
             }
         }
     }
-
-    fun hint(): Pair<String, Int> {
+    fun hint(): Pair<Int, Int> {
 
         // Check that no mistakes have been made
-        for(hexID in hexIDArray) {
+        for(hexID in 0..48) {
             if (board[hexID] != 0 && board[hexID] != solvedBoard[hexID]) {
                 return Pair(hexID, 0)
             }
@@ -516,11 +460,11 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
 
         // If no mistakes then return one hex that is not yet filled in
         val results = calculateNext()
-        return Pair(results.entries.first().key, results.entries.first().value)
+        return Pair(results[0].first, results[0].second)
     }
 
     internal fun isBoardSolved(): Boolean {
-        for (hexID in hexIDArray) {
+        for (hexID in 0..48) {
             if (board[hexID] != solvedBoard[hexID]) {
                 return false
             }
@@ -553,61 +497,63 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
     */
 
     companion object {
-        /** This Array contains all the possible ID's for hexagons  */
-        internal val hexIDArray = arrayOf(
-            "-2:-4",
-            "0:-4",
-            "-3:-3",
-            "-1:-3",
-            "1:-3",
-            "3:-3",
-            "5:-3",
-            "-6:-2",
-            "-4:-2",
-            "-2:-2",
-            "0:-2",
-            "2:-2",
-            "4:-2",
-            "6:-2",
-            "-7:-1",
-            "-5:-1",
-            "-3:-1",
-            "-1:-1",
-            "1:-1",
-            "3:-1",
-            "5:-1",
-            "-6:0",
-            "-4:0",
-            "-2:0",
-            "0:0",
-            "2:0",
-            "4:0",
-            "6:0",
-            "-5:1",
-            "-3:1",
-            "-1:1",
-            "1:1",
-            "3:1",
-            "5:1",
-            "7:1",
-            "-6:2",
-            "-4:2",
-            "-2:2",
-            "0:2",
-            "2:2",
-            "4:2",
-            "6:2",
-            "-5:3",
-            "-3:3",
-            "-1:3",
-            "1:3",
-            "3:3",
-            "0:4",
-            "2:4"
+        /** This Array contains the position of the hexagons */
+        internal val hexPositionArray = arrayOf(
+            Pair(-2, -4),
+            Pair(0, -4),
+            Pair(-3, -3),
+            Pair(-1, -3),
+            Pair(1, -3),
+            Pair(3, -3),
+            Pair(5, -3),
+            Pair(-6, -2),
+            Pair(-4, -2),
+            Pair(-2, -2),
+            Pair(0, -2),
+            Pair(2, -2),
+            Pair(4, -2),
+            Pair(6, -2),
+            Pair(-7, -1),
+            Pair(-5, -1),
+            Pair(-3, -1),
+            Pair(-1, -1),
+            Pair(1, -1),
+            Pair(3, -1),
+            Pair(5, -1),
+            Pair(-6, 0),
+            Pair(-4, 0),
+            Pair(-2, 0),
+            Pair(0, 0),
+            Pair(2, 0),
+            Pair(4, 0),
+            Pair(6, 0),
+            Pair(-5, 1),
+            Pair(-3, 1),
+            Pair(-1, 1),
+            Pair(1, 1),
+            Pair(3, 1),
+            Pair(5, 1),
+            Pair(7, 1),
+            Pair(-6, 2),
+            Pair(-4, 2),
+            Pair(-2, 2),
+            Pair(0, 2),
+            Pair(2, 2),
+            Pair(4, 2),
+            Pair(6, 2),
+            Pair(-5, 3),
+            Pair(-3, 3),
+            Pair(-1, 3),
+            Pair(1, 3),
+            Pair(3, 3),
+            Pair(0, 4),
+            Pair(2, 4)
         )
 
         /**
          * An array where the array at index i contains all the indices of the hexagons that needs to be different to i
+         *
+         * This array was computed from the hexIDGroups array below
          */
         internal val constraints = arrayOf(
             arrayOf(1, 3, 10, 18, 25, 32, 40, 2, 8, 15, 21, 4, 9),
@@ -664,49 +610,54 @@ class BoardModel(board: MutableMap<String, Int>?, solvedBoard: Map<String, Int>?
         /**
          * This array contains all the groups of hexagons where each number has to be
          * unique, in normal sudoku this is the rows and columns and 3x3 squares.
+         *
+         * hexIDGroups[0] is the clusters, hexIDGroups[1] is the rows, hexIDGroups[2 and 3] is the diagonals
+         *
+         * The rows and diagonals on the edges with only 2 hexes can be removed, since they must already be unique as they are always part
+         * of the same cluster, but this data structure is not intended for checking uniqueness, for that use the array above.
          */
         internal val hexIDGroups = arrayOf(
             arrayOf(
-                arrayOf("-2:-4", "0:-4"),
-                arrayOf("-3:-3", "-1:-3", "1:-3", "3:-3", "5:-3"),
-                arrayOf("-6:-2", "-4:-2", "-2:-2", "0:-2", "2:-2", "4:-2", "6:-2"),
-                arrayOf("-7:-1", "-5:-1", "-3:-1", "-1:-1", "1:-1", "3:-1", "5:-1"),
-                arrayOf("-6:0", "-4:0", "-2:0", "0:0", "2:0", "4:0", "6:0"),
-                arrayOf("-5:1", "-3:1", "-1:1", "1:1", "3:1", "5:1", "7:1"),
-                arrayOf("-6:2", "-4:2", "-2:2", "0:2", "2:2", "4:2", "6:2"),
-                arrayOf("-5:3", "-3:3", "-1:3", "1:3", "3:3"),
-                arrayOf("0:4", "2:4")
+                arrayOf(17, 18, 25, 31, 30, 23, 24),
+                arrayOf(0, 1, 4, 10, 9, 2, 3),
+                arrayOf(5, 6, 13, 20, 19, 11, 12),
+                arrayOf(26, 27, 34, 41, 40, 32, 33),
+                arrayOf(39, 46, 48, 47, 44, 38, 45),
+                arrayOf(29, 37, 43, 42, 35, 28, 36),
+                arrayOf(8, 16, 22, 21, 14, 7, 15)
             ),
             arrayOf(
-                arrayOf("5:-3", "6:-2"),
-                arrayOf("3:-3", "4:-2", "5:-1", "6:0", "7:1"),
-                arrayOf("0:-4", "1:-3", "2:-2", "3:-1", "4:0", "5:1", "6:2"),
-                arrayOf("-2:-4", "-1:-3", "0:-2", "1:-1", "2:0", "3:1", "4:2"),
-                arrayOf("-3:-3", "-2:-2", "-1:-1", "0:0", "1:1", "2:2", "3:3"),
-                arrayOf("-4:-2", "-3:-1", "-2:0", "-1:1", "0:2", "1:3", "2:4"),
-                arrayOf("-6:-2", "-5:-1", "-4:0", "-3:1", "-2:2", "-1:3", "0:4"),
-                arrayOf("-7:-1", "-6:0", "-5:1", "-4:2", "-3:3"),
-                arrayOf("-6:2", "-5:3")
+                arrayOf(0, 1),
+                arrayOf(2, 3, 4, 5, 6),
+                arrayOf(7, 8, 9, 10, 11, 12, 13),
+                arrayOf(14, 15, 16, 17, 18, 19, 20),
+                arrayOf(21, 22, 23, 24, 25, 26, 27),
+                arrayOf(28, 29, 30, 31, 32, 33, 34),
+                arrayOf(35, 36, 37, 38, 39, 40, 41),
+                arrayOf(42, 43, 44, 45, 46),
+                arrayOf(47, 48)
             ),
             arrayOf(
-                arrayOf("-6:-2", "-7:-1"),
-                arrayOf("-2:-4", "-3:-3", "-4:-2", "-5:-1", "-6:0"),
-                arrayOf("0:-4", "-1:-3", "-2:-2", "-3:-1", "-4:0", "-5:1", "-6:2"),
-                arrayOf("1:-3", "0:-2", "-1:-1", "-2:0", "-3:1", "-4:2", "-5:3"),
-                arrayOf("3:-3", "2:-2", "1:-1", "0:0", "-1:1", "-2:2", "-3:3"),
-                arrayOf("5:-3", "4:-2", "3:-1", "2:0", "1:1", "0:2", "-1:3"),
-                arrayOf("6:-2", "5:-1", "4:0", "3:1", "2:2", "1:3", "0:4"),
-                arrayOf("6:0", "5:1", "4:2", "3:3", "2:4"),
-                arrayOf("7:1", "6:2")
+                arrayOf(6, 13),
+                arrayOf(5, 12, 20, 27, 34),
+                arrayOf(1, 4, 11, 19, 26, 33, 41),
+                arrayOf(0, 3, 10, 18, 25, 32, 40),
+                arrayOf(2, 9, 17, 24, 31, 39, 46),
+                arrayOf(8, 16, 23, 30, 38, 45, 48),
+                arrayOf(7, 15, 22, 29, 37, 44, 47),
+                arrayOf(14, 21, 28, 36, 43),
+                arrayOf(35, 42)
             ),
             arrayOf(
-                arrayOf("-1:-1", "1:-1", "2:0", "1:1", "-1:1", "-2:0", "0:0"),
-                arrayOf("-2:-4", "0:-4", "1:-3", "0:-2", "-2:-2", "-3:-3", "-1:-3"),
-                arrayOf("3:-3", "5:-3", "6:-2", "5:-1", "3:-1", "2:-2", "4:-2"),
-                arrayOf("4:0", "6:0", "7:1", "6:2", "4:2", "3:1", "5:1"),
-                arrayOf("2:2", "3:3", "2:4", "0:4", "-1:3", "0:2", "1:3"),
-                arrayOf("-3:1", "-2:2", "-3:3", "-5:3", "-6:2", "-5:1", "-4:2"),
-                arrayOf("-4:-2", "-3:-1", "-4:0", "-6:0", "-7:-1", "-6:-2", "-5:-1")
+                arrayOf(7, 14),
+                arrayOf(0, 2, 8, 15, 21),
+                arrayOf(1, 3, 9, 16, 22, 28, 35),
+                arrayOf(4, 10, 17, 23, 29, 36, 42),
+                arrayOf(5, 11, 18, 24, 30, 37, 43),
+                arrayOf(6, 12, 19, 25, 31, 38, 44),
+                arrayOf(13, 20, 26, 32, 39, 45, 47),
+                arrayOf(27, 33, 40, 46, 48),
+                arrayOf(34, 41)
             )
         )
     }

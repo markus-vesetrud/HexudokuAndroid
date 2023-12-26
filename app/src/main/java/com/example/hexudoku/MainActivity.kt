@@ -81,12 +81,12 @@ fun MainContent(
 
     val backToMenuFunction = { completed: Boolean, ticks: Int ->
         timeSpent = ticks
+        navController.navigate("main menu") {
+            popUpTo("main menu") { inclusive = true }
+        }
         if (completed) {
             boardModel = null
             timeSpent = 0
-        }
-        navController.navigate("main menu") {
-            popUpTo("main menu") { inclusive = true }
         }
     }
 
@@ -94,17 +94,19 @@ fun MainContent(
     NavHost(navController = navController, startDestination = "main menu") {
         composable("board") {
             CustomColumn {
-                // Be aware! If boardModel is null the app will navigate to the main menu
-                BoardView(
-                    // Using the screenWidth directly makes the app misbehave when the width > the height
-                    // This has been fixed by disabling landscape mode
-                    boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
-                    boardModel = boardModel!!,
-                    backToMenu = backToMenuFunction,
-                    showHint = showHint,
-                    showTimer = showTimer,
-                    timeSpent = timeSpent
-                )
+                if (boardModel != null) {
+                    BoardView(
+                        // Using the screenWidth directly makes the app misbehave when the width > the height
+                        // This has been fixed by disabling landscape mode
+                        boardSize = LocalConfiguration.current.screenWidthDp.dp.value,
+                        boardModel = boardModel!!,
+                        backToMenu = backToMenuFunction,
+                        showHint = showHint,
+                        showTimer = showTimer,
+                        timeSpent = timeSpent
+                    )
+                }
+
             }
         }
         composable("main menu") {
