@@ -1,6 +1,7 @@
 package com.example.hexudoku
 
 import android.util.Log
+import java.lang.IllegalStateException
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
@@ -36,6 +37,16 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
             }
             Log.d("Time to fill board", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
 
+            /*
+            timeTaken = measureTime {
+
+                removeXNumbers2(numbersToRemove)
+                Log.d("new board", this.board.toList().toString())
+            }
+            Log.d("Time to remove new", timeTaken.toString(DurationUnit.SECONDS, decimals = 3))
+            this.board = this.solvedBoard.copyOf()
+            */
+
             timeTaken = measureTime {
                 removeXNumbers(numbersToRemove)
             }
@@ -47,6 +58,12 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
     }
 
     // Finds the hexes with only one possible number and returns them
+    /*
+     * This function does not find all hexes that are determined. For example can you have 2 fives
+     * in different rows that together restrict the five in another cell to be one of 2 places, both
+     * of which are on the same row. Then no other place on that row can have a five, which you can
+     * use to deduce that another place must have a five
+     */
     private fun calculateNext(): List<Pair<Int, Int>> {
         val result = mutableListOf<Pair<Int, Int>>()
         for (hexID in 0..48) {
@@ -89,7 +106,7 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
         return true
     }
 
-    /*
+
     private fun checkMoreThanOneBit(byte: Byte): Boolean {
         val num = byte.toInt()
         return (num and (num-1)) != 0
@@ -321,28 +338,14 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
 
     }
 
-    private fun domainIsFilled(domain: Array<MutableList<Int>>): Boolean {
-
-        for (values in domain) {
-            if (values.size != 1) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun removeXNumbers2(x: Int, solvedBoard: Array<Int>): Array<Int> {
-
-        val board = solvedBoard.copyOf()
+    private fun removeXNumbers2(x: Int) {
         // Set up the domain to be 0b01000000 if the board has a 1 and 0b00000001 if the board has a 7
         val domain: Array<Byte> = Array(49) { i -> (0b1 shl (7-solvedBoard[i])).toByte() }
 
 
-        var untestedHexes = (List(49) {i -> i}).shuffled(this.random).toMutableList()
+        val untestedHexes = (List(49) {i -> i}).shuffled(this.random).toMutableList()
 
-        // Now remove numbers one by one
-        // At this point 7 hexes has already been removed, or 0 has been removed if something went wrong
-        // In either case domain and untestedHexes should have values that make sense
+        // Remove numbers one by one
         for (i in 0 until x) {
             if (untestedHexes.isEmpty()) {
                 break
@@ -366,14 +369,12 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
                 0b00010000 -> board[i] = 3
                 0b00100000 -> board[i] = 2
                 0b01000000 -> board[i] = 1
-                else -> board[i] = -1
+                0b01111111 -> board[i] = 0
+                else -> throw IllegalStateException("domain was invalid")
             }
         }
-
-        return board
-
     }
-    */
+
 
     /*
      * A very simple function that uses backtracking to create a new board
@@ -460,6 +461,7 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
 
         // If no mistakes then return one hex that is not yet filled in
         val results = calculateNext()
+        Log.d("hint", results.toString())
         return Pair(results[0].first, results[0].second)
     }
 
