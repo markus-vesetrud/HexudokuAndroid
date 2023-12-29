@@ -10,20 +10,24 @@ import kotlin.time.measureTime
 @OptIn(ExperimentalTime::class)
 class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: Int, seed: Int) {
 
+    var seed: Int
+        private set
     private val random: Random
 
     var board: Array<Int>
         private set
-
     private var solvedBoard: Array<Int>
 
-    // This array lacks the 7 centre hexes, as they are filled separately
+    // This array lacks the 7 centre hexes, as they are filled separately,
+    // the sequence is such that the domain of the next hex will be small on average,
+    // leading to less backtracking when creating boards
     private val almostOptimizedHexSequence = arrayOf(10, 9, 3, 2, 0, 4, 1, 11, 19, 12, 5, 6, 13, 20, 26, 32, 33, 27, 34, 41, 40, 39, 38, 45, 46, 48, 47, 44, 37, 29, 36, 43, 42, 35, 28, 22, 16, 15, 21, 14, 7, 8)
     // This array contains the random order in which the values of the above hexes are checked
     private val randomValueSequences: Array<List<Int>>
 
 
     init {
+        this.seed = seed
         this.random = Random(seed)
 
         this.board = board ?: Array(49) { 0 }

@@ -9,8 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,13 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.hexudoku.ui.theme.HexSudokuTheme
+import com.example.hexudoku.ui.theme.HexudokuTheme
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,16 +39,23 @@ class MainActivity : ComponentActivity() {
             val (showTimer, onShowTimerChange) = remember {
                 mutableStateOf(false)
             }
-            val themeOptions = listOf("dark", "light", "system")
-            val (selectedTheme, onThemeSelect) = remember {
-                mutableStateOf(themeOptions[2])
+
+            val (darkMode, onDarkModeChange) = remember {
+                mutableStateOf(false)
             }
 
-            HexSudokuTheme(darkTheme = when(selectedTheme) {
-                "dark" -> true
-                "light" -> false
-                else -> isSystemInDarkTheme()
-            }) {
+            // The firstTime variable is only there to make sure the
+            // onDarkModeChange(isSystemInDarkTheme()) call is only made once
+            val (firstTime, onFirstTimeChange) = remember {
+                mutableStateOf(true)
+            }
+            if (firstTime) {
+                onDarkModeChange(isSystemInDarkTheme())
+                onFirstTimeChange(false)
+            }
+
+
+            HexudokuTheme(darkTheme = darkMode) {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -56,7 +64,7 @@ class MainActivity : ComponentActivity() {
                     MainContent(
                         showHint, onShowHintChange,
                         showTimer, onShowTimerChange,
-                        themeOptions, selectedTheme, onThemeSelect
+                        darkMode, onDarkModeChange
                     )
                 }
             }
@@ -68,7 +76,7 @@ class MainActivity : ComponentActivity() {
 fun MainContent(
     showHint: Boolean, onShowHintChange: (Boolean) -> Unit,
     showTimer: Boolean, onShowTimerChange: (Boolean) -> Unit,
-    themeOptions: List<String>, selectedTheme: String, onThemeSelect: (String) -> Unit
+    darkMode: Boolean, onDarkModeChange: (Boolean) -> Unit,
 ) {
     LockScreenOrientation(orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
     val navController = rememberNavController()
@@ -137,32 +145,46 @@ fun MainContent(
             }
         }
         composable("difficulty menu") {
+            val (seed, defaultOnSeedChange) = remember {
+                mutableStateOf(Random.nextInt(0, 100_000_000).toString())
+            }
+            val onSeedChange: (String) -> Unit = { newText ->
+                var modifiedNewText = ""
+                newText.forEach { c: Char ->
+                    if (c.isDigit()) {
+                        modifiedNewText += c
+                    }
+                }
+                defaultOnSeedChange(modifiedNewText)
+            }
+
             CustomColumn {
                 Spacer(modifier = Modifier.height(50.dp))
+                SeedNumberField(seed, onSeedChange)
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 15, 1328)
+                        boardModel = BoardModel(null, null, 15, seed.toInt())
                         navController.navigate("board")
                     },
                     text = "Short"
                 )
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 25, 1)
+                        boardModel = BoardModel(null, null, 25, seed.toInt())
                         navController.navigate("board")
                     },
                     text = "Medium"
                 )
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 35, 1)
+                        boardModel = BoardModel(null, null, 35, seed.toInt())
                         navController.navigate("board")
                     },
                     text = "Long"
                 )
                 HexButton(
                     onClick = {
-                        boardModel = BoardModel(null, null, 50, 1)
+                        boardModel = BoardModel(null, null, 50, seed.toInt())
                         navController.navigate("board")
                     },
                     text = "Max"
@@ -247,37 +269,17 @@ fun MainContent(
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Show hint button")
-                    Checkbox(checked = showHint, onCheckedChange = onShowHintChange)
+                    Switch(checked = showHint, onCheckedChange = onShowHintChange)
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Show timer")
-                    Checkbox(checked = showTimer, onCheckedChange = onShowTimerChange)
+                    Switch(checked = showTimer, onCheckedChange = onShowTimerChange)
                 }
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Dark mode select")
-                    Column() {
-                        themeOptions.forEach { text ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.selectable(
-                                    selected = (text == selectedTheme),
-                                    onClick = { onThemeSelect(text) }
-                                )
-                            ) {
-                                RadioButton(
-                                    selected = (text == selectedTheme),
-                                    onClick = { onThemeSelect(text) }
-                                )
-                                Text(text = stringResource(when(text) {
-                                    "light" -> R.string.setting_light
-                                    "dark" -> R.string.setting_dark
-                                    else -> R.string.setting_system
-                                }))
-                            }
-                        }
-                    }
+                    Text(text = "Dark mode")
+                    Switch(checked = darkMode, onCheckedChange = onDarkModeChange)
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 HexButton(onClick = { navController.navigate("main menu") {
@@ -290,8 +292,23 @@ fun MainContent(
 }
 
 @Composable
+fun SeedNumberField(seed: String, onSeedChange: (String) -> Unit) {
+
+    OutlinedTextField(
+        value = seed,
+        label = { Text(text = "Seed") },
+        modifier = Modifier.width(150.dp),
+        // modifier = Modifier.border(width = 4.dp, color = MaterialTheme.colors.primary, CutCornerShape(50)),
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+        onValueChange = onSeedChange
+    )
+
+}
+
+
+@Composable
 fun HexButton(onClick: () -> Unit, text: String, enabled: Boolean = true) {
-    Button(onClick = onClick, enabled = enabled, shape = CutCornerShape(50),
+    Button(onClick = onClick, enabled = enabled, // shape = CutCornerShape(50),
         modifier = Modifier
             .width(150.dp)
             .padding(4.dp)) {

@@ -108,7 +108,7 @@ internal fun BoardView(boardSize: Float, boardModel: BoardModel, backToMenu: (Bo
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Text(text = "Seed: ${boardModel.seed}")
             if (completed) {
                 Text(text = "Puzzle Solved!", fontSize = 26.sp, modifier = Modifier.height(40.dp))
             } else {
