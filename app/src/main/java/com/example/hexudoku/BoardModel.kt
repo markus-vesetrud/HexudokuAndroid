@@ -10,6 +10,17 @@ import kotlin.time.measureTime
 @OptIn(ExperimentalTime::class)
 class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: Int, seed: Int) {
 
+    /*
+     * Note:
+     * A lot of considerations and different ideas has gone into making this code run faster,
+     * otherwise it can take more than 1 sec create a new puzzle when the phone is being emulated.
+     *
+     * Therefore a board is just an array of 49 ints, with 0 representing an empty hex. The index of a hex
+     * corresponds to its position, with index 0 being in the top left, and index 48 being in the bottom right
+     *
+     * The position of a hex with index i is given by hexPositionArray[i]
+     */
+
     var seed: Int
         private set
     private val random: Random
@@ -110,7 +121,7 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
         return true
     }
 
-
+    /*
     private fun checkMoreThanOneBit(byte: Byte): Boolean {
         val num = byte.toInt()
         return (num and (num-1)) != 0
@@ -143,7 +154,7 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
         for (i in centreIndices.indices) {
             domain[centreIndices[i]] = (0b1 shl (6-i)).toByte()
         }
-
+/
         logDomain2(domain)
 
 
@@ -378,6 +389,7 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
             }
         }
     }
+    */
 
 
     /*
@@ -400,11 +412,11 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
                 if (currentHexIndex == 41 || recursiveFillMap(currentHexIndex + 1)) {
                     return true
                 }
-                // Reset the change made by this try
+                // Reset the change made by this try when it did not work
                 board[currentHexID] = 0
             }
         }
-        // All numbers have been tried for this hex and none of the worked, therefore the
+        // All numbers have been tried for this hex and none of them worked, therefore the
         // change made in the preceding call did not work out
         return false
     }
@@ -423,6 +435,7 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
         solvedBoard = board.copyOf()
     }
 
+    // Returns true if the given hex can be logically determined from the other hexes already on the board
     private fun hexCanBeDetermined(hexID: Int): Boolean {
         val startingBoardCopy = board.copyOf()
         while (board[hexID] == 0) {
@@ -439,21 +452,29 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
         return true
     }
 
+    // Tries to remove numbers from the board and still ensure that the board is solvable
+    // Assumes the board is filled.
     private fun removeXNumbers(x: Int) {
         var remaining = x
         val randomIDArray = List(49) {i -> i}.shuffled(this.random).toMutableList()
-
 
         while (randomIDArray.isNotEmpty() && remaining > 0) {
             remaining--
             val hexID = randomIDArray.removeAt(0)
             val oldValue = board[hexID]
             board[hexID] = 0
+
+            // Does not need to check if the entire board is solvable, it is enough if the hex
+            // that was removed can be filled in, because from there it is guaranteed to be solvable
+            // because of the previous iteration of this loop
             if (!hexCanBeDetermined(hexID)) {
                 board[hexID] = oldValue
             }
         }
     }
+
+    // Gives the hex where a mistake is made, or a hex that must have a certain number based on the
+    // other numbers on the board
     fun hint(): Pair<Int, Int> {
 
         // Check that no mistakes have been made
@@ -477,30 +498,6 @@ class BoardModel(board: Array<Int>?, solvedBoard: Array<Int>?, numbersToRemove: 
         }
         return true
     }
-
-    /*
-    internal fun checkBoardIsSolvedButNotIdenticalToFirstSolution(): Boolean {
-        for (hexID in hexIDArray) {
-            if (board[hexID] == 0) {
-                return false
-            }
-        }
-        val group = mutableListOf<Int>()
-        for (i in hexIDGroups.indices) {
-            for (j in hexIDGroups[i].indices) {
-                group.clear()
-                for (hexID in hexIDGroups[i][j]) {
-                    if (group.contains(board[hexID])) {
-                        return false
-                    } else {
-                        group.add(board[hexID]!!)
-                    }
-                }
-            }
-        }
-        return true
-    }
-    */
 
     companion object {
         /** This Array contains the position of the hexagons */
